@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
-from .cfg import *
+from tool.cfg import *
 
 
 class FCView(nn.Module):
@@ -545,7 +545,7 @@ if __name__ == '__main__':
     # out_cfgfile = sys.argv[3]
     # out_weightfile = sys.argv[4]
 
-    in_cfgfile = "config/yolov3-tiny.cfg"
+    in_cfgfile = "yolov3-tiny.cfg"
     in_weightfile = "yolov3-tiny.weights"
     out_cfgfile = "tiny-yolov3.cfg"
     out_weightfile = "tiny-yolov3.weight"
