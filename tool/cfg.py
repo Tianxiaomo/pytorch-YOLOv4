@@ -1,12 +1,8 @@
 import torch
-from collections import OrderedDict
+from ttest.utils import convert2cpu
 
 
 def parse_cfg(cfgfile):
-    def erase_comment(line):
-        line = line.split('#')[0]
-        return line
-
     blocks = []
     fp = open(cfgfile, 'r')
     block = None
@@ -19,13 +15,12 @@ def parse_cfg(cfgfile):
         elif line[0] == '[':
             if block:
                 blocks.append(block)
-            block = OrderedDict()
+            block = dict()
             block['type'] = line.lstrip('[').rstrip(']')
             # set default value
             if block['type'] == 'convolutional':
                 block['batch_normalize'] = 0
         else:
-            line = erase_comment(line)
             key, value = line.split('=')
             key = key.strip()
             if key == 'type':
@@ -41,25 +36,6 @@ def parse_cfg(cfgfile):
 
 
 def print_cfg(blocks):
-    for block in blocks:
-        print('[%s]' % (block['type']))
-        for key, value in block.items():
-            if key != 'type':
-                print('%s=%s' % (key, value))
-        print('')
-
-
-def save_cfg(blocks, cfgfile):
-    with open(cfgfile, 'w') as fp:
-        for block in blocks:
-            fp.write('[%s]\n' % (block['type']))
-            for key, value in block.items():
-                if key != 'type':
-                    fp.write('%s=%s\n' % (key, value))
-            fp.write('\n')
-
-
-def print_cfg_nicely(blocks):
     print('layer     filters    size              input                output');
     prev_width = 416
     prev_height = 416
@@ -79,9 +55,9 @@ def print_cfg_nicely(blocks):
             kernel_size = int(block['size'])
             stride = int(block['stride'])
             is_pad = int(block['pad'])
-            pad = (kernel_size - 1) / 2 if is_pad else 0
-            width = (prev_width + 2 * pad - kernel_size) / stride + 1
-            height = (prev_height + 2 * pad - kernel_size) / stride + 1
+            pad = (kernel_size - 1) // 2 if is_pad else 0
+            width = (prev_width + 2 * pad - kernel_size) // stride + 1
+            height = (prev_height + 2 * pad - kernel_size) // stride + 1
             print('%5d %-6s %4d  %d x %d / %d   %3d x %3d x%4d   ->   %3d x %3d x%4d' % (
                 ind, 'conv', filters, kernel_size, kernel_size, stride, prev_width, prev_height, prev_filters, width,
                 height, filters))
@@ -94,8 +70,8 @@ def print_cfg_nicely(blocks):
         elif block['type'] == 'maxpool':
             pool_size = int(block['size'])
             stride = int(block['stride'])
-            width = prev_width / stride
-            height = prev_height / stride
+            width = prev_width // stride
+            height = prev_height // stride
             print('%5d %-6s       %d x %d / %d   %3d x %3d x%4d   ->   %3d x %3d x%4d' % (
                 ind, 'max', pool_size, pool_size, stride, prev_width, prev_height, prev_filters, width, height,
                 filters))
@@ -108,30 +84,44 @@ def print_cfg_nicely(blocks):
         elif block['type'] == 'avgpool':
             width = 1
             height = 1
-            print('%5d %-6s                   %3d x %3d x%4d   ->      %3d' % (
+            print('%5d %-6s                   %3d x %3d x%4d   ->  %3d' % (
                 ind, 'avg', prev_width, prev_height, prev_filters, prev_filters))
-            prev_width = 1
-            prev_height = 1
+            prev_width = width
+            prev_height = height
+            prev_filters = filters
             out_widths.append(prev_width)
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
         elif block['type'] == 'softmax':
-            print('%5d %-6s                                    ->      %3d' % (ind, 'softmax', prev_filters))
+            print('%5d %-6s                                    ->  %3d' % (ind, 'softmax', prev_filters))
             out_widths.append(prev_width)
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
         elif block['type'] == 'cost':
-            print('%5d %-6s                                     ->      %3d' % (ind, 'cost', prev_filters))
+            print('%5d %-6s                                     ->  %3d' % (ind, 'cost', prev_filters))
             out_widths.append(prev_width)
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
         elif block['type'] == 'reorg':
             stride = int(block['stride'])
             filters = stride * stride * prev_filters
-            width = prev_width / stride
-            height = prev_height / stride
+            width = prev_width // stride
+            height = prev_height // stride
             print('%5d %-6s             / %d   %3d x %3d x%4d   ->   %3d x %3d x%4d' % (
                 ind, 'reorg', stride, prev_width, prev_height, prev_filters, width, height, filters))
+            prev_width = width
+            prev_height = height
+            prev_filters = filters
+            out_widths.append(prev_width)
+            out_heights.append(prev_height)
+            out_filters.append(prev_filters)
+        elif block['type'] == 'upsample':
+            stride = int(block['stride'])
+            filters = prev_filters
+            width = prev_width * stride
+            height = prev_height * stride
+            print('%5d %-6s           * %d   %3d x %3d x%4d   ->   %3d x %3d x%4d' % (
+                ind, 'upsample', stride, prev_width, prev_height, prev_filters, width, height, filters))
             prev_width = width
             prev_height = height
             prev_filters = filters
@@ -156,7 +146,7 @@ def print_cfg_nicely(blocks):
             out_widths.append(prev_width)
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
-        elif block['type'] == 'region':
+        elif block['type'] in ['region', 'yolo']:
             print('%5d %-6s' % (ind, 'detection'))
             out_widths.append(prev_width)
             out_heights.append(prev_height)
@@ -171,14 +161,9 @@ def print_cfg_nicely(blocks):
             out_widths.append(prev_width)
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
-        elif block['type'] == 'softmax':
-            print('%5d %-6s' % (ind, 'softmax'))
-            out_widths.append(prev_width)
-            out_heights.append(prev_height)
-            out_filters.append(prev_filters)
         elif block['type'] == 'connected':
             filters = int(block['output'])
-            print('%5d %-6s                            %d  ->      %3d' % (ind, 'connected', prev_filters, filters))
+            print('%5d %-6s                            %d  ->  %3d' % (ind, 'connected', prev_filters, filters))
             prev_filters = filters
             out_widths.append(1)
             out_heights.append(1)
@@ -192,13 +177,9 @@ def load_conv(buf, start, conv_model):
     num_b = conv_model.bias.numel()
     conv_model.bias.data.copy_(torch.from_numpy(buf[start:start + num_b]));
     start = start + num_b
-    conv_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_w].reshape(conv_model.weight.data.shape)));
+    conv_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_w]).reshape(conv_model.weight.data.shape));
     start = start + num_w
     return start
-
-
-def convert2cpu(gpu_matrix):
-    return torch.FloatTensor(gpu_matrix.size()).copy_(gpu_matrix)
 
 
 def save_conv(fp, conv_model):
@@ -221,7 +202,7 @@ def load_conv_bn(buf, start, conv_model, bn_model):
     start = start + num_b
     bn_model.running_var.copy_(torch.from_numpy(buf[start:start + num_b]));
     start = start + num_b
-    conv_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_w].reshape(conv_model.weight.data.shape)));
+    conv_model.weight.data.copy_(torch.from_numpy(buf[start:start + num_w]).reshape(conv_model.weight.data.shape));
     start = start + num_w
     return start
 
@@ -239,27 +220,6 @@ def save_conv_bn(fp, conv_model, bn_model):
         bn_model.running_mean.numpy().tofile(fp)
         bn_model.running_var.numpy().tofile(fp)
         conv_model.weight.data.numpy().tofile(fp)
-
-
-def save_conv_shrink_bn(fp, conv_model, bn_model, eps=1e-5):
-    if bn_model.bias.is_cuda:
-        bias = bn_model.bias.data - bn_model.running_mean * bn_model.weight.data / torch.sqrt(
-            bn_model.running_var + eps)
-        convert2cpu(bias).numpy().tofile(fp)
-        s = conv_model.weight.data.size()
-        weight = conv_model.weight.data * (bn_model.weight.data / torch.sqrt(bn_model.running_var + eps)).view(-1, 1, 1,
-                                                                                                               1).repeat(
-            1, s[1], s[2], s[3])
-        convert2cpu(weight).numpy().tofile(fp)
-    else:
-        bias = bn_model.bias.data - bn_model.running_mean * bn_model.weight.data / torch.sqrt(
-            bn_model.running_var + eps)
-        bias.numpy().tofile(fp)
-        s = conv_model.weight.data.size()
-        weight = conv_model.weight.data * (bn_model.weight.data / torch.sqrt(bn_model.running_var + eps)).view(-1, 1, 1,
-                                                                                                               1).repeat(
-            1, s[1], s[2], s[3])
-        weight.numpy().tofile(fp)
 
 
 def load_fc(buf, start, fc_model):
@@ -280,9 +240,7 @@ def save_fc(fp, fc_model):
 if __name__ == '__main__':
     import sys
 
-    if len(sys.argv) != 2:
-        print('Usage: python cfg.py model.cfg')
-        exit()
-
-    blocks = parse_cfg(sys.argv[1])
-    print_cfg_nicely(blocks)
+    blocks = parse_cfg('cfg/yolo.cfg')
+    if len(sys.argv) == 2:
+        blocks = parse_cfg(sys.argv[1])
+    print_cfg(blocks)
