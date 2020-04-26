@@ -1,0 +1,4 @@
+ttest
+*.weights
+__pycache__
+.idea
