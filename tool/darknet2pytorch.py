@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from ttest.region_loss import RegionLoss
-from ttest.yolo_layer import YoloLayer
+from utils.region_loss import RegionLoss
+from utils.yolo_layer import YoloLayer
 from tool.cfg import *
 
 
@@ -135,6 +135,16 @@ class Darknet(nn.Module):
                     x2 = outputs[layers[1]]
                     x = torch.cat((x1, x2), 1)
                     outputs[ind] = x
+                elif len(layers) == 4:
+                    x1 = outputs[layers[0]]
+                    x2 = outputs[layers[1]]
+                    x3 = outputs[layers[2]]
+                    x4 = outputs[layers[3]]
+                    x = torch.cat((x1, x2, x3, x4), 1)
+                    outputs[ind] = x
+                else:
+                    print("rounte number > 2 ,is {}".format(len(layers)))
+
             elif block['type'] == 'shortcut':
                 from_layer = int(block['from'])
                 activation = block['activation']
@@ -271,6 +281,14 @@ class Darknet(nn.Module):
                     assert (layers[0] == ind - 1)
                     prev_filters = out_filters[layers[0]] + out_filters[layers[1]]
                     prev_stride = out_strides[layers[0]]
+                elif len(layers) == 4:
+                    assert (layers[0] == ind - 1)
+                    prev_filters = out_filters[layers[0]] + out_filters[layers[1]] + out_filters[layers[2]] + \
+                                   out_filters[layers[3]]
+                    prev_stride = out_strides[layers[0]]
+                else:
+                    print("route error!!!")
+
                 out_filters.append(prev_filters)
                 out_strides.append(prev_stride)
                 models.append(EmptyModule())

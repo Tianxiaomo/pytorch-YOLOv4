@@ -1,5 +1,6 @@
+import sys
 import torch
-from ttest.utils import convert2cpu
+from utils.utils import convert2cpu
 
 
 def parse_cfg(cfgfile):
@@ -143,6 +144,18 @@ def print_cfg(blocks):
                 assert (prev_width == out_widths[layers[1]])
                 assert (prev_height == out_heights[layers[1]])
                 prev_filters = out_filters[layers[0]] + out_filters[layers[1]]
+            elif len(layers) == 4:
+                print('%5d %-6s %d %d %d %d' % (ind, 'route', layers[0], layers[1], layers[2], layers[3]))
+                prev_width = out_widths[layers[0]]
+                prev_height = out_heights[layers[0]]
+                assert (prev_width == out_widths[layers[1]] == out_widths[layers[2]] == out_widths[layers[3]])
+                assert (prev_height == out_heights[layers[1]] == out_heights[layers[2]] == out_heights[layers[3]])
+                prev_filters = out_filters[layers[0]] + out_filters[layers[1]] + out_filters[layers[2]] + out_filters[
+                    layers[3]]
+            else:
+                print("route error !!! {} {} {}".format(sys._getframe().f_code.co_filename,
+                                                        sys._getframe().f_code.co_name, sys._getframe().f_lineno))
+
             out_widths.append(prev_width)
             out_heights.append(prev_height)
             out_filters.append(prev_filters)
