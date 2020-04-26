@@ -3,4 +3,4 @@ ttest
 __pycache__
 .idea
 
-data/predictions.jpg
+./predictions.jpg
