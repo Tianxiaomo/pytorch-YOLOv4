@@ -17,11 +17,18 @@ class Mish(torch.nn.Module):
 
 
 class MaxPoolStride1(nn.Module):
-    def __init__(self):
+    def __init__(self,size=2):
         super(MaxPoolStride1, self).__init__()
+        self.size = size
+        if (self.size - 1) %2 == 0:
+            self.padding1 = (self.size-1)//2
+            self.padding2 = self.padding1
+        else:
+            self.padding1 = (self.size - 1) // 2
+            self.padding2 = self.padding1 + 1
 
     def forward(self, x):
-        x = F.max_pool2d(F.pad(x, (0, 1, 0, 1), mode='replicate'), 2, stride=1)
+        x = F.max_pool2d(F.pad(x, (self.padding1, self.padding2, self.padding1, self.padding2), mode='replicate'), self.size, stride=1)
         return x
 
 
@@ -232,7 +239,7 @@ class Darknet(nn.Module):
                 if stride > 1:
                     model = nn.MaxPool2d(pool_size, stride)
                 else:
-                    model = MaxPoolStride1()
+                    model = MaxPoolStride1(pool_size)
                 out_filters.append(prev_filters)
                 prev_stride = stride * prev_stride
                 out_strides.append(prev_stride)

@@ -6,7 +6,7 @@ A minimal PyTorch implementation of YOLOv4.
 - More details: http://pjreddie.com/darknet/yolo/
 
 
-![image](data/predictions.jpg)
+![image](data/prediction.jpg)
 
 # Inference
 - download model weight https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT
