@@ -2,3 +2,5 @@ ttest
 *.weights
 __pycache__
 .idea
+
+data/predictions.jpg
