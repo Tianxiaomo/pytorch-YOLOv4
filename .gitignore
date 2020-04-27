@@ -1,6 +1,9 @@
 ttest
 *.weights
+*.pth
+
 __pycache__
 .idea
+runs
 
 predictions.jpg

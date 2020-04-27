@@ -1,9 +1,5 @@
-import time
-import torch
-import math
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 from utils.utils import *
 
 
@@ -106,19 +102,19 @@ def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, nH, nW,
 
 
 class YoloLayer(nn.Module):
-    def __init__(self, anchor_mask=[], num_classes=0, anchors=[], num_anchors=1):
+    def __init__(self, anchor_mask=[], num_classes=0, anchors=[], num_anchors=1,stride=32):
         super(YoloLayer, self).__init__()
         self.anchor_mask = anchor_mask
         self.num_classes = num_classes
         self.anchors = anchors
         self.num_anchors = num_anchors
-        self.anchor_step = len(anchors) / num_anchors
+        self.anchor_step = len(anchors) // num_anchors
         self.coord_scale = 1
         self.noobject_scale = 1
         self.object_scale = 5
         self.class_scale = 1
         self.thresh = 0.6
-        self.stride = 32
+        self.stride = stride
         self.seen = 0
 
     def forward(self, output, target=None):
