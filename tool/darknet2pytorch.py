@@ -17,18 +17,19 @@ class Mish(torch.nn.Module):
 
 
 class MaxPoolStride1(nn.Module):
-    def __init__(self,size=2):
+    def __init__(self, size=2):
         super(MaxPoolStride1, self).__init__()
         self.size = size
-        if (self.size - 1) %2 == 0:
-            self.padding1 = (self.size-1)//2
+        if (self.size - 1) % 2 == 0:
+            self.padding1 = (self.size - 1) // 2
             self.padding2 = self.padding1
         else:
             self.padding1 = (self.size - 1) // 2
             self.padding2 = self.padding1 + 1
 
     def forward(self, x):
-        x = F.max_pool2d(F.pad(x, (self.padding1, self.padding2, self.padding1, self.padding2), mode='replicate'), self.size, stride=1)
+        x = F.max_pool2d(F.pad(x, (self.padding1, self.padding2, self.padding1, self.padding2), mode='replicate'),
+                         self.size, stride=1)
         return x
 
 
@@ -410,52 +411,52 @@ class Darknet(nn.Module):
             else:
                 print('unknown type %s' % (block['type']))
 
-    def save_weights(self, outfile, cutoff=0):
-        if cutoff <= 0:
-            cutoff = len(self.blocks) - 1
-
-        fp = open(outfile, 'wb')
-        self.header[3] = self.seen
-        header = self.header
-        header.numpy().tofile(fp)
-
-        ind = -1
-        for blockId in range(1, cutoff + 1):
-            ind = ind + 1
-            block = self.blocks[blockId]
-            if block['type'] == 'convolutional':
-                model = self.models[ind]
-                batch_normalize = int(block['batch_normalize'])
-                if batch_normalize:
-                    save_conv_bn(fp, model[0], model[1])
-                else:
-                    save_conv(fp, model[0])
-            elif block['type'] == 'connected':
-                model = self.models[ind]
-                if block['activation'] != 'linear':
-                    save_fc(fc, model)
-                else:
-                    save_fc(fc, model[0])
-            elif block['type'] == 'maxpool':
-                pass
-            elif block['type'] == 'reorg':
-                pass
-            elif block['type'] == 'upsample':
-                pass
-            elif block['type'] == 'route':
-                pass
-            elif block['type'] == 'shortcut':
-                pass
-            elif block['type'] == 'region':
-                pass
-            elif block['type'] == 'yolo':
-                pass
-            elif block['type'] == 'avgpool':
-                pass
-            elif block['type'] == 'softmax':
-                pass
-            elif block['type'] == 'cost':
-                pass
-            else:
-                print('unknown type %s' % (block['type']))
-        fp.close()
+    # def save_weights(self, outfile, cutoff=0):
+    #     if cutoff <= 0:
+    #         cutoff = len(self.blocks) - 1
+    #
+    #     fp = open(outfile, 'wb')
+    #     self.header[3] = self.seen
+    #     header = self.header
+    #     header.numpy().tofile(fp)
+    #
+    #     ind = -1
+    #     for blockId in range(1, cutoff + 1):
+    #         ind = ind + 1
+    #         block = self.blocks[blockId]
+    #         if block['type'] == 'convolutional':
+    #             model = self.models[ind]
+    #             batch_normalize = int(block['batch_normalize'])
+    #             if batch_normalize:
+    #                 save_conv_bn(fp, model[0], model[1])
+    #             else:
+    #                 save_conv(fp, model[0])
+    #         elif block['type'] == 'connected':
+    #             model = self.models[ind]
+    #             if block['activation'] != 'linear':
+    #                 save_fc(fc, model)
+    #             else:
+    #                 save_fc(fc, model[0])
+    #         elif block['type'] == 'maxpool':
+    #             pass
+    #         elif block['type'] == 'reorg':
+    #             pass
+    #         elif block['type'] == 'upsample':
+    #             pass
+    #         elif block['type'] == 'route':
+    #             pass
+    #         elif block['type'] == 'shortcut':
+    #             pass
+    #         elif block['type'] == 'region':
+    #             pass
+    #         elif block['type'] == 'yolo':
+    #             pass
+    #         elif block['type'] == 'avgpool':
+    #             pass
+    #         elif block['type'] == 'softmax':
+    #             pass
+    #         elif block['type'] == 'cost':
+    #             pass
+    #         else:
+    #             print('unknown type %s' % (block['type']))
+    #     fp.close()
