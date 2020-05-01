@@ -102,7 +102,11 @@ def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, nH, nW,
 
 
 class YoloLayer(nn.Module):
-    def __init__(self, anchor_mask=[], num_classes=0, anchors=[], num_anchors=1,stride=32):
+    ''' Yolo layer
+    model_out: while inference,is post-processing inside or outside the model
+        true:outside
+    '''
+    def __init__(self, anchor_mask=[], num_classes=0, anchors=[], num_anchors=1,stride=32,model_out=True):
         super(YoloLayer, self).__init__()
         self.anchor_mask = anchor_mask
         self.num_classes = num_classes
@@ -116,6 +120,8 @@ class YoloLayer(nn.Module):
         self.thresh = 0.6
         self.stride = stride
         self.seen = 0
+
+        self.model_out = model_out
 
     def forward(self, output, target=None):
         if self.training:
@@ -200,9 +206,12 @@ class YoloLayer(nn.Module):
             loss_conf.data[0], loss_cls.data[0], loss.data[0]))
             return loss
         else:
-            masked_anchors = []
-            for m in self.anchor_mask:
-                masked_anchors += self.anchors[m * self.anchor_step:(m + 1) * self.anchor_step]
-            masked_anchors = [anchor / self.stride for anchor in masked_anchors]
-            boxes = get_region_boxes(output.data, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask))
-            return boxes
+            if self.model_out:
+                return output
+            else:
+                masked_anchors = []
+                for m in self.anchor_mask:
+                    masked_anchors += self.anchors[m * self.anchor_step:(m + 1) * self.anchor_step]
+                masked_anchors = [anchor / self.stride for anchor in masked_anchors]
+                boxes = get_region_boxes(output.data, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask))
+                return boxes
