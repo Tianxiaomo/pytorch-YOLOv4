@@ -17,8 +17,8 @@ def sigmoid(x):
 
 
 def softmax(x):
-    x = np.exp(x - np.max(x))
-    x = x / x.sum()
+    x = np.exp(x - np.expand_dims(np.max(x, axis=1), axis=1))
+    x = x / np.expand_dims(x.sum(axis=1), axis=1)
     return x
 
 
@@ -131,21 +131,20 @@ def get_region_boxes(output, conf_thresh, num_classes, anchors, num_anchors, onl
     all_boxes = []
     output = output.view(batch * num_anchors, 5 + num_classes, h * w).transpose(0, 1).contiguous().view(5 + num_classes,
                                                                                                         batch * num_anchors * h * w)
-    # print("output.shape{}".format(output.shape))
+
     grid_x = torch.linspace(0, w - 1, w).repeat(h, 1).repeat(batch * num_anchors, 1, 1).view(
         batch * num_anchors * h * w).type_as(output)  # cuda()
     grid_y = torch.linspace(0, h - 1, h).repeat(w, 1).t().repeat(batch * num_anchors, 1, 1).view(
         batch * num_anchors * h * w).type_as(output)  # cuda()
     xs = torch.sigmoid(output[0]) + grid_x
     ys = torch.sigmoid(output[1]) + grid_y
-    # print("grid_x,y,xs,ys.shape:{} {} {} {}".format(grid_x.shape,grid_y.shape,xs.shape,ys.shape))
+
     anchor_w = torch.Tensor(anchors).view(num_anchors, anchor_step).index_select(1, torch.LongTensor([0]))
     anchor_h = torch.Tensor(anchors).view(num_anchors, anchor_step).index_select(1, torch.LongTensor([1]))
     anchor_w = anchor_w.repeat(batch, 1).repeat(1, 1, h * w).view(batch * num_anchors * h * w).type_as(output)  # cuda()
     anchor_h = anchor_h.repeat(batch, 1).repeat(1, 1, h * w).view(batch * num_anchors * h * w).type_as(output)  # cuda()
     ws = torch.exp(output[2]) * anchor_w
     hs = torch.exp(output[3]) * anchor_h
-    # print("anchor_w,h,ws,hs: {} {} {} {}".format(anchor_w.shape,anchor_h.shape,ws.shape,hs.shape))
 
     det_confs = torch.sigmoid(output[4])
 
@@ -220,11 +219,11 @@ def get_region_boxes1(output, conf_thresh, num_classes, anchors, num_anchors, on
         5 + num_classes,
         batch * num_anchors * h * w)
 
-    grid_x = np.expand_dims(np.expand_dims(np.linspace(0, w - 1, w), axis=1).repeat(h, 1), axis=2).repeat(
-        batch * num_anchors, axis=2).reshape(
+    grid_x = np.expand_dims(np.expand_dims(np.linspace(0, w - 1, w), axis=0).repeat(h, 0), axis=0).repeat(
+        batch * num_anchors, axis=0).reshape(
         batch * num_anchors * h * w)
-    grid_y = np.expand_dims(np.expand_dims(np.linspace(0, h - 1, h), axis=1).repeat(w, 1), axis=2).repeat(
-        batch * num_anchors, axis=2).reshape(
+    grid_y = np.expand_dims(np.expand_dims(np.linspace(0, h - 1, h), axis=0).repeat(w, 0).T, axis=0).repeat(
+        batch * num_anchors, axis=0).reshape(
         batch * num_anchors * h * w)
 
     xs = sigmoid(output[0]) + grid_x
@@ -244,21 +243,10 @@ def get_region_boxes1(output, conf_thresh, num_classes, anchors, num_anchors, on
     cls_confs = softmax(output[5:5 + num_classes].transpose(1, 0))
     cls_max_confs = np.max(cls_confs, 1)
     cls_max_ids = np.argmax(cls_confs, 1)
-    # cls_max_confs = cls_max_confs.view(-1)
-    # cls_max_ids = cls_max_ids.view(-1)
     t1 = time.time()
 
     sz_hw = h * w
     sz_hwa = sz_hw * num_anchors
-    # det_confs = convert2cpu(det_confs)
-    # cls_max_confs = convert2cpu(cls_max_confs)
-    # cls_max_ids = convert2cpu_long(cls_max_ids)
-    # xs = convert2cpu(xs)
-    # ys = convert2cpu(ys)
-    # ws = convert2cpu(ws)
-    # hs = convert2cpu(hs)
-    # if validation:
-        # cls_confs = convert2cpu(cls_confs.view(-1, num_classes))
     t2 = time.time()
     for b in range(batch):
         boxes = []
@@ -460,8 +448,8 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
         for m in anchor_masks[i]:
             masked_anchors += anchors[m * anchor_step:(m + 1) * anchor_step]
         masked_anchors = [anchor / strides[i] for anchor in masked_anchors]
-        # boxes.append(get_region_boxes(list_boxes[i].data.numpy(), 0.6, 80, masked_anchors, len(anchor_masks[i])))
-        boxes.append(get_region_boxes(list_boxes[i], 0.6, 80, masked_anchors, len(anchor_masks[i])))
+        boxes.append(get_region_boxes1(list_boxes[i].data.numpy(), 0.6, 80, masked_anchors, len(anchor_masks[i])))
+        # boxes.append(get_region_boxes(list_boxes[i], 0.6, 80, masked_anchors, len(anchor_masks[i])))
 
     boxes = boxes[0][0] + boxes[1][0] + boxes[2][0]
     t3 = time.time()
