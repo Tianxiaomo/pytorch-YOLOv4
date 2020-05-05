@@ -177,9 +177,7 @@ class DownSample1(nn.Module):
         self.conv7 = Conv_Bn_Activation(64, 64, 1, 1, 'mish')
         # [route]
         # layers = -1, -7
-        self.conv8 = Conv_Bn_Activation(64, 64, 1, 1, 'mish')
-
-        self.conv9 = Conv_Bn_Activation(64, 64, 1, 1, 'mish')
+        self.conv8 = Conv_Bn_Activation(128, 64, 1, 1, 'mish')
 
     def forward(self, input):
         x1 = self.conv1(input)
@@ -195,7 +193,7 @@ class DownSample1(nn.Module):
         x7 = self.conv7(x6)
         # [route]
         # layers = -1, -7
-        x7 = x7 + x3
+        x7 = torch.cat([x7, x3], dim=1)
         x8 = self.conv8(x7)
         return x8
 
@@ -213,7 +211,7 @@ class DownSample2(nn.Module):
         # s -3
         self.conv4 = Conv_Bn_Activation(64, 64, 1, 1, 'mish')
         # r -1 -10
-        self.conv5 = Conv_Bn_Activation(64, 128, 1, 1, 'mish')
+        self.conv5 = Conv_Bn_Activation(128, 128, 1, 1, 'mish')
 
     def forward(self, input):
         x1 = self.conv1(input)
@@ -223,7 +221,7 @@ class DownSample2(nn.Module):
         r = self.resblock(x3)
         x4 = self.conv4(r)
 
-        x4 = x4 + x2
+        x4 = torch.cat([x4, x2], dim=1)
         x5 = self.conv5(x4)
         return x5
 
@@ -237,7 +235,7 @@ class DownSample3(nn.Module):
 
         self.resblock = ResBlock(ch=128, nblocks=8)
         self.conv4 = Conv_Bn_Activation(128, 128, 1, 1, 'mish')
-        self.conv5 = Conv_Bn_Activation(128, 256, 1, 1, 'mish')
+        self.conv5 = Conv_Bn_Activation(256, 256, 1, 1, 'mish')
 
     def forward(self, input):
         x1 = self.conv1(input)
@@ -247,7 +245,7 @@ class DownSample3(nn.Module):
         r = self.resblock(x3)
         x4 = self.conv4(r)
 
-        x4 = x4 + x2
+        x4 = torch.cat([x4, x2], dim=1)
         x5 = self.conv5(x4)
         return x5
 
@@ -261,7 +259,7 @@ class DownSample4(nn.Module):
 
         self.resblock = ResBlock(ch=256, nblocks=8)
         self.conv4 = Conv_Bn_Activation(256, 256, 1, 1, 'mish')
-        self.conv5 = Conv_Bn_Activation(256, 512, 1, 1, 'mish')
+        self.conv5 = Conv_Bn_Activation(512, 512, 1, 1, 'mish')
 
     def forward(self, input):
         x1 = self.conv1(input)
@@ -271,7 +269,7 @@ class DownSample4(nn.Module):
         r = self.resblock(x3)
         x4 = self.conv4(r)
 
-        x4 = x4 + x2
+        x4 = torch.cat([x4, x2], dim=1)
         x5 = self.conv5(x4)
         return x5
 
@@ -285,7 +283,7 @@ class DownSample5(nn.Module):
 
         self.resblock = ResBlock(ch=512, nblocks=4)
         self.conv4 = Conv_Bn_Activation(512, 512, 1, 1, 'mish')
-        self.conv5 = Conv_Bn_Activation(512, 1024, 1, 1, 'mish')
+        self.conv5 = Conv_Bn_Activation(1024, 1024, 1, 1, 'mish')
 
     def forward(self, input):
         x1 = self.conv1(input)
@@ -295,7 +293,7 @@ class DownSample5(nn.Module):
         r = self.resblock(x3)
         x4 = self.conv4(r)
 
-        x4 = x4 + x2
+        x4 = torch.cat([x4, x2], dim=1)
         x5 = self.conv5(x4)
         return x5
 
@@ -312,7 +310,7 @@ class Neek(nn.Module):
         self.maxpool3 = MaxPoolStride1(13)
         # R -1 -3 -5 -6
         # SPP
-        self.conv4 = Conv_Bn_Activation(512, 512, 1, 1, 'leaky')
+        self.conv4 = Conv_Bn_Activation(2048, 512, 1, 1, 'leaky')
         self.conv5 = Conv_Bn_Activation(512, 1024, 3, 1, 'leaky')
         self.conv6 = Conv_Bn_Activation(1024, 512, 1, 1, 'leaky')
         self.conv7 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
@@ -321,7 +319,7 @@ class Neek(nn.Module):
         # R 85
         self.conv8 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
         # R -1 -3
-        self.conv9 = Conv_Bn_Activation(256, 256, 1, 1, 'leaky')
+        self.conv9 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
         self.conv10 = Conv_Bn_Activation(256, 512, 3, 1, 'leaky')
         self.conv11 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
         self.conv12 = Conv_Bn_Activation(256, 512, 3, 1, 'leaky')
@@ -332,7 +330,7 @@ class Neek(nn.Module):
         # R 54
         self.conv15 = Conv_Bn_Activation(256, 128, 1, 1, 'leaky')
         # R -1 -3
-        self.conv16 = Conv_Bn_Activation(128, 128, 1, 1, 'leaky')
+        self.conv16 = Conv_Bn_Activation(256, 128, 1, 1, 'leaky')
         self.conv17 = Conv_Bn_Activation(128, 256, 3, 1, 'leaky')
         self.conv18 = Conv_Bn_Activation(256, 128, 1, 1, 'leaky')
         self.conv19 = Conv_Bn_Activation(128, 256, 3, 1, 'leaky')
@@ -346,7 +344,7 @@ class Neek(nn.Module):
         m1 = self.maxpool1(x3)
         m2 = self.maxpool2(x3)
         m3 = self.maxpool3(x3)
-        spp = m1 + m2 + m3 + x3
+        spp = torch.cat([m1, m2, m3, x3], dim=1)
         # SPP end
         x4 = self.conv4(spp)
         x5 = self.conv5(x4)
@@ -357,7 +355,7 @@ class Neek(nn.Module):
         # R 85
         x8 = self.conv8(downsample4)
         # R -1 -3
-        x8 = x8 + up
+        x8 = torch.cat([x8, up], dim=1)
 
         x9 = self.conv9(x8)
         x10 = self.conv10(x9)
@@ -371,7 +369,7 @@ class Neek(nn.Module):
         # R 54
         x15 = self.conv15(downsample3)
         # R -1 -3
-        x15 = x15 + up
+        x15 = torch.cat([x15, up], dim=1)
 
         x16 = self.conv16(x15)
         x17 = self.conv17(x16)
@@ -394,7 +392,7 @@ class Yolov4Head(nn.Module):
         self.conv3 = Conv_Bn_Activation(128, 256, 3, 2, 'leaky')
 
         # R -1 -16
-        self.conv4 = Conv_Bn_Activation(256, 256, 1, 1, 'leaky')
+        self.conv4 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
         self.conv5 = Conv_Bn_Activation(256, 512, 3, 1, 'leaky')
         self.conv6 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
         self.conv7 = Conv_Bn_Activation(256, 512, 3, 1, 'leaky')
@@ -409,7 +407,7 @@ class Yolov4Head(nn.Module):
         self.conv11 = Conv_Bn_Activation(256, 512, 3, 2, 'leaky')
 
         # R -1 -37
-        self.conv12 = Conv_Bn_Activation(512, 512, 1, 1, 'leaky')
+        self.conv12 = Conv_Bn_Activation(1024, 512, 1, 1, 'leaky')
         self.conv13 = Conv_Bn_Activation(512, 1024, 3, 1, 'leaky')
         self.conv14 = Conv_Bn_Activation(1024, 512, 1, 1, 'leaky')
         self.conv15 = Conv_Bn_Activation(512, 1024, 3, 1, 'leaky')
@@ -427,7 +425,7 @@ class Yolov4Head(nn.Module):
 
         x3 = self.conv3(input1)
         # R -1 -16
-        x3 = x3 + input2
+        x3 = torch.cat([x3, input2], dim=1)
         x4 = self.conv4(x3)
         x5 = self.conv5(x4)
         x6 = self.conv6(x5)
@@ -440,7 +438,7 @@ class Yolov4Head(nn.Module):
         # R -4
         x11 = self.conv11(x8)
         # R -1 -37
-        x11 = x11 + input3
+        x11 = torch.cat([x11, input3], dim=1)
 
         x12 = self.conv12(x11)
         x13 = self.conv13(x12)
@@ -483,7 +481,9 @@ class Yolov4(nn.Module):
 if __name__ == "__main__":
     model = Yolov4()
     # print(model)
-    model.load_state_dict(torch.load('yolov4-1.pth'), strict=False)
+
+
+    model.load_state_dict(torch.load('yolov4.pth'), strict=False)
 
     num_classes = 80
     if num_classes == 20:

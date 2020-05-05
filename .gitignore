@@ -4,6 +4,7 @@ ttest
 
 __pycache__
 .idea
+.vscode
 runs
 
 predictions.jpg
