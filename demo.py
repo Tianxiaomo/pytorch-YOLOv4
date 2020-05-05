@@ -52,6 +52,46 @@ def detect(cfgfile, weightfile, imgfile):
     plot_boxes(img, boxes, 'predictions.jpg', class_names)
 
 
+def detect_imges(cfgfile, weightfile, imgfile_list=['data/dog.jpg', 'data/giraffe.jpg']):
+    m = Darknet(cfgfile)
+
+    m.print_network()
+    m.load_weights(weightfile)
+    print('Loading weights from %s... Done!' % (weightfile))
+
+    num_classes = 80
+    if num_classes == 20:
+        namesfile = 'data/voc.names'
+    elif num_classes == 80:
+        namesfile = 'data/coco.names'
+    else:
+        namesfile = 'data/names'
+
+    use_cuda = 0
+    if use_cuda:
+        m.cuda()
+
+    imges = []
+    imges_list = []
+    for imgfile in imgfile_list:
+        img = Image.open(imgfile).convert('RGB')
+        imges_list.append(img)
+        sized = img.resize((m.width, m.height))
+        imges.append(np.expand_dims(np.array(sized), axis=0))
+
+    images = np.concatenate(imges, 0)
+    for i in range(2):
+        start = time.time()
+        boxes = do_detect(m, images, 0.5, 0.4, use_cuda)
+        finish = time.time()
+        if i == 1:
+            print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
+
+    class_names = load_class_names(namesfile)
+    for i,(img,box) in enumerate(zip(imges_list,boxes)):
+        plot_boxes(img, box, 'predictions{}.jpg'.format(i), class_names)
+
+
 def detect_cv2(cfgfile, weightfile, imgfile):
     import cv2
     m = Darknet(cfgfile)
@@ -125,7 +165,8 @@ if __name__ == '__main__':
         cfgfile = sys.argv[1]
         weightfile = sys.argv[2]
         imgfile = sys.argv[3]
-        detect(cfgfile, weightfile, imgfile)
+        detect(cfgfile, weightfile,imgfile)
+        # detect_imges(cfgfile, weightfile)
         # detect_cv2(cfgfile, weightfile, imgfile)
         # detect_skimage(cfgfile, weightfile, imgfile)
     else:

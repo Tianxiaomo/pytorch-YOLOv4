@@ -231,10 +231,10 @@ def get_region_boxes1(output, conf_thresh, num_classes, anchors, num_anchors, on
 
     anchor_w = np.array(anchors).reshape((num_anchors, anchor_step))[:, 0]
     anchor_h = np.array(anchors).reshape((num_anchors, anchor_step))[:, 1]
-    anchor_w = np.expand_dims(np.expand_dims(anchor_w, axis=1).repeat(batch, 1), axis=2).repeat(h * w, axis=1).reshape(
-        batch * num_anchors * h * w)  # cuda()
-    anchor_h = np.expand_dims(np.expand_dims(anchor_h, axis=1).repeat(batch, 1), axis=2).repeat(h * w, axis=1).reshape(
-        batch * num_anchors * h * w)  # cuda()
+    anchor_w = np.expand_dims(np.expand_dims(anchor_w, axis=1).repeat(batch, 1), axis=2) \
+        .repeat(h * w, axis=2).transpose(1, 0, 2).reshape(batch * num_anchors * h * w)
+    anchor_h = np.expand_dims(np.expand_dims(anchor_h, axis=1).repeat(batch, 1), axis=2) \
+        .repeat(h * w, axis=2).transpose(1, 0, 2).reshape(batch * num_anchors * h * w)
     ws = np.exp(output[2]) * anchor_w
     hs = np.exp(output[3]) * anchor_h
 
@@ -422,8 +422,10 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
         img = img.view(height, width, 3).transpose(0, 1).transpose(0, 2).contiguous()
         img = img.view(1, 3, height, width)
         img = img.float().div(255.0)
-    elif type(img) == np.ndarray:  # cv2 image
+    elif type(img) == np.ndarray and len(img.shape) == 3:  # cv2 image
         img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
+    elif type(img) == np.ndarray and len(img.shape) == 4:
+        img = torch.from_numpy(img.transpose(0, 3, 1, 2)).float().div(255.0)
     else:
         print("unknow image type")
         exit(-1)
@@ -450,11 +452,17 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
         masked_anchors = [anchor / strides[i] for anchor in masked_anchors]
         boxes.append(get_region_boxes1(list_boxes[i].data.numpy(), 0.6, 80, masked_anchors, len(anchor_masks[i])))
         # boxes.append(get_region_boxes(list_boxes[i], 0.6, 80, masked_anchors, len(anchor_masks[i])))
-
-    boxes = boxes[0][0] + boxes[1][0] + boxes[2][0]
-    t3 = time.time()
-
-    boxes = nms(boxes, nms_thresh)
+    if img.shape[0] > 1:
+        bboxs_for_imgs = [
+            boxes[0][index] + boxes[1][index] + boxes[2][index]
+            for index in range(img.shape[0])]
+        # 分别对每一张图片的结果进行nms
+        t3 = time.time()
+        boxes = [nms(bboxs, nms_thresh) for bboxs in bboxs_for_imgs]
+    else:
+        boxes = boxes[0][0] + boxes[1][0] + boxes[2][0]
+        t3 = time.time()
+        boxes = nms(boxes, nms_thresh)
     t4 = time.time()
 
     if False:
