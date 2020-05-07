@@ -38,6 +38,7 @@ Cfg.mosaic = 1
 Cfg.letter_box = 0
 Cfg.jitter = 0.2
 Cfg.classes = 80
+Cfg.track = 0
 
 if (Cfg.mosaic and Cfg.cutmix):
     Cfg.mixup = 4
