@@ -11,6 +11,7 @@ A minimal PyTorch implementation of YOLOv4.
 
 - [x] Inference
 - [ ] Train
+    - [x] Mocaic
 
 # Weight
 

@@ -16,6 +16,8 @@ import random
 import cv2
 import sys
 import numpy as np
+import os
+import matplotlib.pyplot as plt
 
 
 def rand_uniform_strong(min, max):
@@ -41,180 +43,80 @@ def rand_precalc_random(min, max, random_part):
     return (random_part * (max - min)) + min
 
 
-check_mistakes = 0
+def fill_truth_detection(bboxes, num_boxes, classes, flip, dx, dy, sx, sy, net_w, net_h):
+    np.random.shuffle(bboxes)
+    bboxes[:, 0] -= dx
+    bboxes[:, 2] -= dx
+    bboxes[:, 1] -= dy
+    bboxes[:, 3] -= dy
+
+    bboxes[:, 0] = np.clip(bboxes[:, 0], 0, sx)
+    bboxes[:, 2] = np.clip(bboxes[:, 2], 0, sx)
+
+    bboxes[:, 1] = np.clip(bboxes[:, 1], 0, sy)
+    bboxes[:, 3] = np.clip(bboxes[:, 3], 0, sy)
+
+    out_box = list(np.where(((bboxes[:, 1] == sy) & (bboxes[:, 3] == sy)) |
+                            ((bboxes[:, 0] == sx) & (bboxes[:, 2] == sx)) |
+                            ((bboxes[:, 1] == 0) & (bboxes[:, 3] == 0)) |
+                            ((bboxes[:, 0] == 0) & (bboxes[:, 2] == 0)))[0])
+    list_box = list(range(bboxes.shape[0]))
+    for i in out_box:
+        list_box.remove(i)
+    bboxes = bboxes[list_box]
+
+    bboxes = bboxes[np.where((bboxes[:, 4] < classes) & (bboxes[:, 4] >= 0))[0]]
+
+    if bboxes.shape[0] > num_boxes:
+        bboxes = bboxes[:num_boxes]
+
+    min_w_h = np.array([bboxes[:, 2] - bboxes[:, 0], bboxes[:, 3] - bboxes[:, 1]]).min()
+
+    bboxes[:, 0] *= (net_w / sx)
+    bboxes[:, 2] *= (net_w / sx)
+    bboxes[:, 1] *= (net_h / sy)
+    bboxes[:, 3] *= (net_h / sy)
+
+    if flip:
+        temp = net_w - bboxes[:, 0]
+        bboxes[:, 0] = net_w - bboxes[:, 2]
+        bboxes[:, 2] = temp
+
+    return bboxes, min_w_h
 
 
-def read_boxes(path):
-    # TODO
-    return 0
+def rect_intersection(a, b):
+    minx = max(a[0], b[0])
+    miny = max(a[1], b[1])
 
-
-def randomize_boxes(b, n):
-    for i in b:
-        swap = b[i]
-        index = random.randint(0, n) % n
-        b[i] = b[index]
-        b[index] = swap
-    return b
-
-
-def correct_boxes(boxes, n, dx, dy, sx, sy, flip):
-    for i in range(n):
-        if boxes[i].x == 0 and boxes[i].y == 0:
-            boxes[i].x = 999999
-            boxes[i].y = 999999
-            boxes[i].w = 999999
-            boxes[i].h = 999999
-            continue
-
-        if ((boxes[i].x + boxes[i].w / 2) < 0 or (boxes[i].y + boxes[i].h / 2) < 0 or
-                (boxes[i].x - boxes[i].w / 2) > 1 or (boxes[i].y - boxes[i].h / 2) > 1):
-            boxes[i].x = 999999
-            boxes[i].y = 999999
-            boxes[i].w = 999999
-            boxes[i].h = 999999
-            continue
-
-        boxes[i].left = boxes[i].left * sx - dx
-        boxes[i].right = boxes[i].right * sx - dx
-        boxes[i].top = boxes[i].top * sy - dy
-        boxes[i].bottom = boxes[i].bottom * sy - dy
-
-        if flip:
-            swap = boxes[i].left
-            boxes[i].left = 1. - boxes[i].right
-            boxes[i].right = 1. - swap
-
-        boxes[i].left = np.clip(boxes[i].left, 0, 1)
-        boxes[i].right = np.clip(boxes[i].right, 0, 1)
-        boxes[i].top = np.clip(boxes[i].top, 0, 1)
-        boxes[i].bottom = np.clip(boxes[i].bottom, 0, 1)
-
-        boxes[i].x = (boxes[i].left + boxes[i].right) / 2
-        boxes[i].y = (boxes[i].top + boxes[i].bottom) / 2
-        boxes[i].w = (boxes[i].right - boxes[i].left)
-        boxes[i].h = (boxes[i].bottom - boxes[i].top)
-
-        boxes[i].w = np.clip(boxes[i].w, 0, 1)
-        boxes[i].h = np.clip(boxes[i].h, 0, 1)
-    return boxes
-
-
-def fill_truth_detection(path, num_boxes, truth, classes, flip, dx, dy, sx, sy, net_w, net_h):
-    count = 0
-    boxes = read_boxes(path)
-    count = len(boxes)
-    min_w_h = 0
-    lowest_w = 1. / net_w
-    lowest_h = 1. / net_h
-    boxes = randomize_boxes(boxes, count)
-    correct_boxes(boxes, count, dx, dy, sx, sy, flip)
-    if count > num_boxes:
-        count = num_boxes
-    sub = 0
-
-    for i in range(count):
-        x = boxes[i].x
-        y = boxes[i].y
-        w = boxes[i].w
-        h = boxes[i].h
-        id = boxes[i].id
-
-        # not detect small objects
-        # if ((w < 0.001F || h < 0.001F)) continue
-        # if truth (box for object) is smaller than 1x1 pix
-        if id >= classes:
-            print("Wrong annotation: class_id = {}. But class_id should be [from 0 to {}], file: {}".format(id, (
-                    classes - 1), path))
-            # sprintf(buff, "echo %s \"Wrong annotation: class_id = %d. But class_id should be [from 0 to %d]\" >> bad_label.list", labelpath, id, (classes-1))
-            # system(buff)
-            if check_mistakes:
-                input()
-            ++sub
-            continue
-
-        if w < lowest_w or h < lowest_h:
-            # sprintf(buff, "echo %s \"Very small object: w < lowest_w OR h < lowest_h\" >> bad_label.list", labelpath)
-            # system(buff)
-            ++sub
-            continue
-
-        if x == 999999 or y == 999999:
-            print("Wrong annotation: x = 0, y = 0, < 0 or > 1, file: {}".format(path))
-            # sprintf(buff, "echo %s \"Wrong annotation: x = 0 or y = 0\" >> bad_label.list", labelpath)
-            # system(buff)
-            # ++sub
-            if check_mistakes:
-                input()
-            continue
-
-        if x <= 0 or x > 1 or y <= 0 or y > 1:
-            print("\n Wrong annotation: x = {}, y = {}, file: {}".format(x, y, path))
-            # sprintf(buff, "echo %s \"Wrong annotation: x = %f, y = %f\" >> bad_label.list", labelpath, x, y)
-            # system(buff)
-            # ++sub
-            if check_mistakes:
-                input()
-            continue
-
-        if w > 1:
-            print("\n Wrong annotation: w = {}, file: {}".format(w, path))
-            # sprintf(buff, "echo %s \"Wrong annotation: w = %f\" >> bad_label.list", labelpath, w)
-            # system(buff)
-            w = 1
-            if check_mistakes:
-                input()
-
-        if h > 1:
-            print("\n Wrong annotation: h = {}, file: {}".format(h, path))
-            # sprintf(buff, "echo %s \"Wrong annotation: h = %f\" >> bad_label.list", labelpath, h)
-            # system(buff)
-            h = 1
-            if check_mistakes:
-                input()
-
-        if x == 0:
-            x += lowest_w
-        if y == 0:
-            y += lowest_h
-
-        truth[(i - sub) * 5 + 0] = x
-        truth[(i - sub) * 5 + 1] = y
-        truth[(i - sub) * 5 + 2] = w
-        truth[(i - sub) * 5 + 3] = h
-        truth[(i - sub) * 5 + 4] = id
-
-        if min_w_h == 0:
-            min_w_h = w * net_w
-        if min_w_h > w * net_w:
-            min_w_h = w * net_w
-        if min_w_h > h * net_h:
-            min_w_h = h * net_h
-    return min_w_h
+    maxx = min(a[2], b[2])
+    maxy = min(a[3], b[3])
+    return [minx, miny, maxx, maxy]
 
 
 def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue, dsat, dexp, gaussian_noise, blur,
-                            num_boxes, truth):
+                            truth):
     try:
         img = mat
-
+        oh, ow, _ = img.shape
+        pleft, ptop, swidth, sheight = int(pleft), int(ptop), int(swidth), int(sheight)
         # crop
-        src_rect = [pleft, ptop, swidth, sheight]
-        img_rect = (cv2.Point2i(0, 0), img.size())
-        new_src_rect = src_rect & img_rect
+        src_rect = [pleft, ptop, swidth + pleft, sheight + ptop]  # x1,y1,x2,y2
+        img_rect = [0, 0, ow, oh]
+        new_src_rect = rect_intersection(src_rect, img_rect)  # 交集
 
-        dst_rect = [max(0, -pleft), max(0, -ptop), new_src_rect.size()]
+        dst_rect = [max(0, -pleft), max(0, -ptop), max(0, -pleft) + new_src_rect[2] - new_src_rect[0],
+                    max(0, -ptop) + new_src_rect[3] - new_src_rect[1]]
         # cv2.Mat sized
 
-        if (src_rect[0] == 0 and src_rect[1] == 0 and src_rect[2] == img.size()[0] and src_rect[3] == img.size()[1]):
+        if (src_rect[0] == 0 and src_rect[1] == 0 and src_rect[2] == img.shape[0] and src_rect[3] == img.shape[1]):
             sized = cv2.resize(img, (w, h), cv2.INTER_LINEAR)
         else:
-            cropped = np.array([swidth, sheight, 3])
-            cropped[:, :, ] = cv2.mean(img)
+            cropped = np.zeros([sheight, swidth, 3])
+            cropped[:, :, ] = np.mean(img, axis=(0, 1))
 
-            cropped[dst_rect[0]:dst_rect[0] + dst_rect[2], dst_rect[1]:dst_rect[3]] = \
-                img[new_src_rect[0]:new_src_rect[0] + new_src_rect[2],
-                new_src_rect[1]:new_src_rect[1] + new_src_rect[3]]
+            cropped[dst_rect[1]:dst_rect[3], dst_rect[0]:dst_rect[2]] = \
+                img[new_src_rect[1]:new_src_rect[3], new_src_rect[0]:new_src_rect[2]]
 
             # resize
             sized = cv2.resize(cropped, (w, h), cv2.INTER_LINEAR)
@@ -227,8 +129,8 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
         # HSV augmentation
         # cv2.COLOR_BGR2HSV, cv2.COLOR_RGB2HSV, cv2.COLOR_HSV2BGR, cv2.COLOR_HSV2RGB
         if dsat != 1 or dexp != 1 or dhue != 0:
-            if img.channels() >= 3:
-                hsv_src = cv2.cvtColor(sized, cv2.COLOR_RGB2HSV)  # RGB to HSV
+            if img.shape[2] >= 3:
+                hsv_src = cv2.cvtColor(sized.astype(np.float32), cv2.COLOR_RGB2HSV)  # RGB to HSV
                 hsv = cv2.split(hsv_src)
 
                 hsv[1] *= dsat
@@ -293,8 +195,6 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
         # sprintf(txt, "blur = %d", blur)
         # cv2.putText(sized, txt, cv2.Point(100, 100), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.7, CV_RGB(255, 0, 0), 1, CV_AA)
 
-        # Mat -> image
-        # out = mat_to_image(sized)
     except:
         print("OpenCV can't augment image: " + str(w) + " x " + str(h))
         sized = mat
@@ -302,129 +202,61 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
     return sized
 
 
-# blend two images with (alpha and beta)
-def blend_images_cv(new_img, alpha, old_img, beta):
-    # new_mat = (cv::Size(new_img.w, new_img.h), CV_32FC(new_img.c), new_img.data)  # , size_t step = AUTO_STEP)
-    # old_mat = (cv::Size(old_img.w, old_img.h), CV_32FC(old_img.c), old_img.data)
-    new_img = cv2.addWeighted(new_img, alpha, old_img, beta)
-    return new_img
+def filter_truth(bboxes, dx, dy, sx, sy, xd, yd):
+    bboxes[:, 0] -= dx
+    bboxes[:, 2] -= dx
+    bboxes[:, 1] -= dy
+    bboxes[:, 3] -= dy
+
+    bboxes[:, 0] = np.clip(bboxes[:, 0], 0, sx)
+    bboxes[:, 2] = np.clip(bboxes[:, 2], 0, sx)
+
+    bboxes[:, 1] = np.clip(bboxes[:, 1], 0, sy)
+    bboxes[:, 3] = np.clip(bboxes[:, 3], 0, sy)
+
+    out_box = list(np.where(((bboxes[:, 1] == sy) & (bboxes[:, 3] == sy)) |
+                            ((bboxes[:, 0] == sx) & (bboxes[:, 2] == sx)) |
+                            ((bboxes[:, 1] == 0) & (bboxes[:, 3] == 0)) |
+                            ((bboxes[:, 0] == 0) & (bboxes[:, 2] == 0)))[0])
+    list_box = list(range(bboxes.shape[0]))
+    for i in out_box:
+        list_box.remove(i)
+    bboxes = bboxes[list_box]
+
+    bboxes[:, 0] += xd
+    bboxes[:, 2] += xd
+    bboxes[:, 1] += yd
+    bboxes[:, 3] += yd
+
+    return bboxes
 
 
-def blend_truth(boxes, old_truth):
-    # t_size = 4 + 1
-    # count_new_truth = 0
-    # # for (t = 0 t < boxes ++t):
-    # #     x = new_truth[t * (4 + 1)]
-    # #     if not x:
-    # #         break
-    # #     count_new_truth += 1
-    #
-    # for (t = count_new_truth t < boxes ++t):
-    #     new_truth_ptr = new_truth + t * t_size
-    #     old_truth_ptr = old_truth + (t - count_new_truth) * t_size
-    #     x = old_truth_ptr[0]
-    #     if not x:
-    #         break
-    #
-    #     new_truth_ptr[0] = old_truth_ptr[0]
-    #     new_truth_ptr[1] = old_truth_ptr[1]
-    #     new_truth_ptr[2] = old_truth_ptr[2]
-    #     new_truth_ptr[3] = old_truth_ptr[3]
-    #     new_truth_ptr[4] = old_truth_ptr[4]
-    new_truth = boxes + old_truth
-    return new_truth
+def blend_truth_mosaic(out_img, img, bboxes, w, h, cut_x, cut_y, i_mixup,
+                       left_shift, right_shift, top_shift, bot_shift):
+    if i_mixup == 0:
+        bboxes = filter_truth(bboxes, left_shift, top_shift, cut_x, cut_y, 0, 0)
+
+        out_img[:cut_y, :cut_x] = img[top_shift:top_shift + cut_y, left_shift:left_shift + cut_x]
+    if i_mixup == 1:
+        bboxes = filter_truth(bboxes, cut_x - right_shift, top_shift, w - cut_x, cut_y, cut_x, 0)
+
+        out_img[:cut_y, cut_x:] = img[top_shift:top_shift + cut_y, cut_x - right_shift:w - right_shift]
+    if i_mixup == 2:
+        bboxes = filter_truth(bboxes, left_shift, cut_y - bot_shift, cut_x, h - cut_y, 0, cut_y)
+
+        out_img[cut_y:, :cut_x] = img[cut_y - bot_shift:h - bot_shift, left_shift:left_shift + cut_x]
+    if i_mixup == 3:
+        bboxes = filter_truth(bboxes, cut_x - right_shift, cut_y - bot_shift, cut_x, h - cut_y, cut_x, cut_y)
+
+        out_img[cut_y:, cut_x:] = img[cut_y - bot_shift:h - bot_shift, cut_x - right_shift:w - right_shift]
+
+    return out_img, bboxes
 
 
-def min_val_cmp(a, b):
-    return a if a < b else b
-
-
-def max_val_cmp(a, b):
-    return a if a > b else b
-
-
-def blend_truth_mosaic(boxes, old_truth, w, h, cut_x, cut_y, i_mixup, left_shift, right_shift, top_shift,
-                       bot_shift):
-    t_size = 4 + 1
-    count_new_truth = 0
-    # for (t = 0 t < boxes ++t):
-    #     x = new_truth[t * (4 + 1)]
-    #     if not x:
-    #         break
-    #     count_new_truth += 1
-
-    new_t = count_new_truth
-    for (t = count_new_truth t < boxes ++t):
-        *new_truth_ptr = new_truth + new_t * t_size
-        new_truth_ptr[0] = 0
-        *old_truth_ptr = old_truth + (t - count_new_truth) * t_size
-        x = old_truth_ptr[0]
-        if not x:
-            break
-
-        xb = old_truth_ptr[0]
-        yb = old_truth_ptr[1]
-        wb = old_truth_ptr[2]
-        hb = old_truth_ptr[3]
-
-        # shift 4 images
-        if i_mixup == 0:
-            xb = xb - (float)(w - cut_x - right_shift) / w
-            yb = yb - (float)(h - cut_y - bot_shift) / h
-
-        if i_mixup == 1:
-            xb = xb + (float)(cut_x - left_shift) / w
-            yb = yb - (float)(h - cut_y - bot_shift) / h
-
-        if i_mixup == 2:
-            xb = xb - (float)(w - cut_x - right_shift) / w
-            yb = yb + (float)(cut_y - top_shift) / h
-
-        if i_mixup == 3:
-            xb = xb + (float)(cut_x - left_shift) / w
-            yb = yb + (float)(cut_y - top_shift) / h
-
-        left = (xb - wb / 2) * w
-        right = (xb + wb / 2) * w
-        top = (yb - hb / 2) * h
-        bot = (yb + hb / 2) * h
-
-        # fix out of bound
-        if left < 0:
-            diff = left / w
-            xb = xb - diff / 2
-            wb = wb + diff
-
-        if right > w:
-            diff = (right - w) / w
-            xb = xb - diff / 2
-            wb = wb - diff
-
-        if top < 0:
-            diff = (float)
-            top / h
-            yb = yb - diff / 2
-            hb = hb + diff
-
-        if bot > h:
-            diff = (float)(bot - h) / h
-            yb = yb - diff / 2
-            hb = hb - diff
-
-        left = (xb - wb / 2) * w
-        right = (xb + wb / 2) * w
-        top = (yb - hb / 2) * h
-        bot = (yb + hb / 2) * h
-
-        # leave only within the image
-        if left >= 0 and right <= w and top >= 0 and bot <= h and wb > 0 and wb < 1 and hb > 0 and hb < 1 and xb > 0 and xb < 1 and yb > 0 and yb < 1:
-            new_truth_ptr[0] = xb
-            new_truth_ptr[1] = yb
-            new_truth_ptr[2] = wb
-            new_truth_ptr[3] = hb
-            new_truth_ptr[4] = old_truth_ptr[4]
-            new_t += 1
-    return new_truth_ptr
+def draw_box(img, bboxes):
+    for b in bboxes:
+        img = cv2.rectangle(img, (b[0], b[1]), (b[2], b[3]), (0, 255, 0), 2)
+    return img
 
 
 class Yolo_dataset(Dataset):
@@ -439,52 +271,56 @@ class Yolo_dataset(Dataset):
 
         self.cfg = cfg
 
+        truth = {}
+        f = open(Cfg.train_label, 'r', encoding='utf-8')
+        for line in f.readlines():
+            data = line.split(" ")
+            truth[data[0]] = []
+            for i in data[1:]:
+                truth[data[0]].append([int(j) for j in i.split(',')])
+
+        self.truth = truth
+
     def __len__(self):
-        return 100
+        return len(self.truth.keys())
 
     def __getitem__(self, index):
-        img_path = self.img_list[index]
+        img_path = list(self.truth.keys())[index]
+        bboxes = np.array(self.truth.get(img_path), dtype=np.float)
+        img_path = os.path.join('E:/Dataset', img_path)
         use_mixup = self.cfg.mixup
         if random.randint(0, 1):
             use_mixup = 0
 
-        cut_x, cut_y = [], []
-        n = 1
-        # TODO
         if use_mixup == 3:
             min_offset = 0.2
-            for i in range(n):
-                cut_x[i] = random.randint(self.cfg.w * min_offset, self.cfg.w * (1 - min_offset))
-                cut_y[i] = random.randint(self.cfg.h * min_offset, self.cfg.h * (1 - min_offset))
-
-        d = {0}
-        d.shallow = 0
-
-        d.X.rows = n
-        d.X.vals = []
-        d.X.cols = self.cfg.h * self.cfg.w * self.cfg.c
+            cut_x = random.randint(int(self.cfg.w * min_offset), int(self.cfg.w * (1 - min_offset)))
+            cut_y = random.randint(int(self.cfg.h * min_offset), int(self.cfg.h * (1 - min_offset)))
 
         r1, r2, r3, r4, r_scale = 0, 0, 0, 0, 0
         dhue, dsat, dexp, flip, blur = 0, 0, 0, 0, 0
-        augmentation_calculated, gaussian_noise = 0, 0
+        gaussian_noise = 0
+
+        out_img = np.zeros([self.cfg.h, self.cfg.w, 3])
+        out_bboxes = []
 
         for i in range(use_mixup + 1):
-            if i:
-                augmentation_calculated = 0
+            if i != 0:
+                img_path = random.choice(list(self.truth.keys()))
+                bboxes = np.array(self.truth.get(img_path), dtype=np.float)
+                img_path = os.path.join('E:/Dataset', img_path)
             img = cv2.imread(img_path)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             if img is None:
                 continue
             oh, ow, oc = img.shape
-            dh, dw, dc = [oh, ow, oc] * self.cfg.jitter
+            dh, dw, dc = np.array([oh, ow, oc]) * self.cfg.jitter
 
-            if augmentation_calculated == 0 or self.cfg.track == 0:
-                augmentation_calculated = 1
+            if 1 or self.cfg.track == 0:
                 r1 = random.random()
                 r2 = random.random()
                 r3 = random.random()
                 r4 = random.random()
-
-                r_scale = random.random()
 
                 dhue = rand_uniform_strong(-self.cfg.hue, self.cfg.hue)
                 dsat = rand_scale(self.cfg.saturation)
@@ -532,63 +368,51 @@ class Yolo_dataset(Dataset):
             swidth = ow - pleft - pright
             sheight = oh - ptop - pbot
 
-            sx = swidth / ow
-            sy = sheight / oh
-
-            dx = (pleft / ow) / sx
-            dy = (ptop / oh) / sy
-            # TODO  file name
-            filename = ""
-            min_w_h = fill_truth_detection(filename, self.cfg.boxes, truth, self.cfg.classes, flip, dx, dy, 1. / sx,
-                                           1. / sy, self.cfg.w, self.cfg.h)
+            truth, min_w_h = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, pleft, ptop, swidth,
+                                                  sheight, self.cfg.w, self.cfg.h)
             if (min_w_h / 8) < blur and blur > 1:  # disable blur if one of the objects is too small
                 blur = min_w_h / 8
 
-            ai, truth = image_data_augmentation(img, self.cfg.w, self.cfg.h, pleft, ptop, swidth, sheight, flip,
-                                                dhue,
-                                                dsat,
-                                                dexp,
-                                                gaussian_noise, blur, self.cfg.boxes, truth)
+            ai = image_data_augmentation(img, self.cfg.w, self.cfg.h, pleft, ptop, swidth, sheight, flip,
+                                         dhue, dsat, dexp, gaussian_noise, blur, truth)
 
-            # if use_mixup == 0:
-            #     d.X.vals[i] = ai.data
-            #     memcpy(d.y.vals[i], truth, 5 * boxes * sizeof(float))
+            if use_mixup == 0:
+                out_img = ai
+                out_bboxes = truth
             if use_mixup == 1:
                 if i == 0:
-                    d.X.vals[i] = ai.data
                     old_img = ai.copy()
                     old_truth = truth.copy()
                 elif i == 1:
-                    blend_images_cv(ai, 0.5, old_img, 0.5)
-                    blend_truth(old_truth, self.cfg.boxes, truth)
+                    out_img = cv2.addWeighted(ai, 0.5, old_img, 0.5)
+                    out_bboxes = np.concatenate([old_truth, truth], axis=0)
             elif use_mixup == 3:
-                if i == 0:
-                    # tmp_img = make_image(w, h, c)
-                    d.X.vals[i] = tmp_img.data
                 if flip:
                     tmp = pleft
                     pleft = pright
                     pright = tmp
 
-                left_shift = min_val_cmp(cut_x[i], max_val_cmp(0, (-pleft * self.cfg.w / ow)))
-                top_shift = min_val_cmp(cut_y[i], max_val_cmp(0, (-ptop * self.cfg.h / oh)))
+                left_shift = int(min(cut_x, max(0, (-int(pleft) * self.cfg.w / swidth))))
+                top_shift = int(min(cut_y, max(0, (-int(ptop) * self.cfg.h / sheight))))
 
-                right_shift = min_val_cmp((self.cfg.w - cut_x[i]), max_val_cmp(0, (-pright * self.cfg.w / ow)))
-                bot_shift = min_val_cmp(self.cfg.h - cut_y[i], max_val_cmp(0, (-pbot * self.cfg.h / oh)))
+                right_shift = int(min((self.cfg.w - cut_x), max(0, (-int(pright) * self.cfg.w / swidth))))
+                bot_shift = int(min(self.cfg.h - cut_y, max(0, (-int(pbot) * self.cfg.h / sheight))))
 
-                # for k in range(self.cfg.c):
-                #     for y in range(self.cfg.h):
-                #         j = y * self.cfg.w + k * self.cfg.w * self.cfg.h
-                #         if i == 0 and y < cut_y[i]:
-                #             j_src = (w - cut_x[i] - right_shift) + (y + h - cut_y[i] - bot_shift) * w + k * w * h
-                #         if i == 1 and y < cut_y[i]:
-                #             j_src = left_shift + (y + h - cut_y[i] - bot_shift) * w + k * w * h
-                #         if i == 2 and y >= cut_y[i]:
-                #             j_src = (w - cut_x[i] - right_shift) + (top_shift + y - cut_y[i]) * w + k * w * h
-                #         if i == 3 and y >= cut_y[i]:
-                #             j_src = left_shift + (top_shift + y - cut_y[i]) * w + k * w * h
+                out_img, out_bbox = blend_truth_mosaic(out_img, ai, truth.copy(), self.cfg.w, self.cfg.h, cut_x,
+                                                       cut_y, i, left_shift, right_shift, top_shift, bot_shift)
+                out_bboxes.append(out_bbox)
+                print(img_path)
+        if use_mixup == 3:
+            out_bboxes = np.concatenate(out_bboxes, axis=0)
+        return out_img, out_bboxes
 
-                blend_truth_mosaic(boxes, truth, self.cfg.w, self.cfg.h, cut_x[i], cut_y[i], i, left_shift,
-                                   right_shift, top_shift, bot_shift)
 
-        return img, truth
+if __name__ == "__main__":
+    from cfg import Cfg
+
+    dataset = Yolo_dataset(Cfg)
+    for i in range(100):
+        out_img, out_bboxes = dataset.__getitem__(random.randint(0, 100))
+        a = draw_box(out_img.copy(), out_bboxes.astype(np.int32))
+        plt.imshow(a.astype(np.int32))
+        plt.show()

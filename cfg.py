@@ -39,6 +39,19 @@ Cfg.letter_box = 0
 Cfg.jitter = 0.2
 Cfg.classes = 80
 Cfg.track = 0
+Cfg.w = Cfg.width
+Cfg.h = Cfg.height
+Cfg.flip = 1
+Cfg.blur = 0
+Cfg.gaussian = 0
+Cfg.boxes = 60 # box num
+
+Cfg.train_label = "train.txt"
+'''
+image_path1 x1,y1,x2,y2,id x1,y1,x2,y2,id x1,y1,x2,y2,id ...
+image_path2 x1,y1,x2,y2,id x1,y1,x2,y2,id x1,y1,x2,y2,id ...
+...
+'''
 
 if (Cfg.mosaic and Cfg.cutmix):
     Cfg.mixup = 4
