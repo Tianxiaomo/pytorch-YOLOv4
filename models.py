@@ -2,7 +2,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from utils.yolo_layer import YoloLayer
+# from utils.yolo_layer import YoloLayer
+import sys
 
 
 class Mish(torch.nn.Module):
@@ -11,23 +12,6 @@ class Mish(torch.nn.Module):
 
     def forward(self, x):
         x = x * (torch.tanh(torch.nn.functional.softplus(x)))
-        return x
-
-
-class MaxPoolStride1(nn.Module):
-    def __init__(self, size=2):
-        super(MaxPoolStride1, self).__init__()
-        self.size = size
-        if (self.size - 1) % 2 == 0:
-            self.padding1 = (self.size - 1) // 2
-            self.padding2 = self.padding1
-        else:
-            self.padding1 = (self.size - 1) // 2
-            self.padding2 = self.padding1 + 1
-
-    def forward(self, x):
-        x = F.max_pool2d(F.pad(x, (self.padding1, self.padding2, self.padding1, self.padding2), mode='replicate'),
-                         self.size, stride=1)
         return x
 
 
@@ -46,43 +30,6 @@ class Upsample(nn.Module):
         ws = stride
         hs = stride
         x = x.view(B, C, H, 1, W, 1).expand(B, C, H, stride, W, stride).contiguous().view(B, C, H * stride, W * stride)
-        return x
-
-
-class Reorg(nn.Module):
-    def __init__(self, stride=2):
-        super(Reorg, self).__init__()
-        self.stride = stride
-
-    def forward(self, x):
-        stride = self.stride
-        assert (x.data.dim() == 4)
-        B = x.data.size(0)
-        C = x.data.size(1)
-        H = x.data.size(2)
-        W = x.data.size(3)
-        assert (H % stride == 0)
-        assert (W % stride == 0)
-        ws = stride
-        hs = stride
-        x = x.view(B, C, H / hs, hs, W / ws, ws).transpose(3, 4).contiguous()
-        x = x.view(B, C, H / hs * W / ws, hs * ws).transpose(2, 3).contiguous()
-        x = x.view(B, C, hs * ws, H / hs, W / ws).transpose(1, 2).contiguous()
-        x = x.view(B, hs * ws * C, H / hs, W / ws)
-        return x
-
-
-class GlobalAvgPool2d(nn.Module):
-    def __init__(self):
-        super(GlobalAvgPool2d, self).__init__()
-
-    def forward(self, x):
-        N = x.data.size(0)
-        C = x.data.size(1)
-        H = x.data.size(2)
-        W = x.data.size(3)
-        x = F.avg_pool2d(x, (H, W))
-        x = x.view(N, C)
         return x
 
 
@@ -291,9 +238,10 @@ class Neek(nn.Module):
         self.conv2 = Conv_Bn_Activation(512, 1024, 3, 1, 'leaky')
         self.conv3 = Conv_Bn_Activation(1024, 512, 1, 1, 'leaky')
         # SPP
-        self.maxpool1 = MaxPoolStride1(5)
-        self.maxpool2 = MaxPoolStride1(9)
-        self.maxpool3 = MaxPoolStride1(13)
+        self.maxpool1 = nn.MaxPool2d(kernel_size=5, stride=1, padding=5 // 2)
+        self.maxpool2 = nn.MaxPool2d(kernel_size=9, stride=1, padding=9 // 2)
+        self.maxpool3 = nn.MaxPool2d(kernel_size=13, stride=1, padding=13 // 2)
+
         # R -1 -3 -5 -6
         # SPP
         self.conv4 = Conv_Bn_Activation(2048, 512, 1, 1, 'leaky')
@@ -370,9 +318,9 @@ class Yolov4Head(nn.Module):
         super().__init__()
         self.conv1 = Conv_Bn_Activation(128, 256, 3, 1, 'leaky')
         self.conv2 = Conv_Bn_Activation(256, 255, 1, 1, 'linear', bn=False, bias=True)
-        self.yolo1 = YoloLayer(anchor_mask=[0, 1, 2], num_classes=80,
-                               anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
-                               num_anchors=9, stride=8)
+        # self.yolo1 = YoloLayer(anchor_mask=[0, 1, 2], num_classes=80,
+        #                        anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+        #                        num_anchors=9, stride=8)
 
         # R -4
         self.conv3 = Conv_Bn_Activation(128, 256, 3, 2, 'leaky')
@@ -385,9 +333,9 @@ class Yolov4Head(nn.Module):
         self.conv8 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
         self.conv9 = Conv_Bn_Activation(256, 512, 3, 1, 'leaky')
         self.conv10 = Conv_Bn_Activation(512, 255, 1, 1, 'liner', bn=False, bias=True)
-        self.yolo2 = YoloLayer(anchor_mask=[3, 4, 5], num_classes=80,
-                               anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
-                               num_anchors=9, stride=16)
+        # self.yolo2 = YoloLayer(anchor_mask=[3, 4, 5], num_classes=80,
+        #                        anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+        #                        num_anchors=9, stride=16)
 
         # R -4
         self.conv11 = Conv_Bn_Activation(256, 512, 3, 2, 'leaky')
@@ -400,14 +348,14 @@ class Yolov4Head(nn.Module):
         self.conv16 = Conv_Bn_Activation(1024, 512, 1, 1, 'leaky')
         self.conv17 = Conv_Bn_Activation(512, 1024, 3, 1, 'leaky')
         self.conv18 = Conv_Bn_Activation(1024, 255, 1, 1, 'liner', bn=False, bias=True)
-        self.yolo3 = YoloLayer(anchor_mask=[6, 7, 8], num_classes=80,
-                               anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
-                               num_anchors=9, stride=32)
+        # self.yolo3 = YoloLayer(anchor_mask=[6, 7, 8], num_classes=80,
+        #                        anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+        #                        num_anchors=9, stride=32)
 
     def forward(self, input1, input2, input3):
         x1 = self.conv1(input1)
         x2 = self.conv2(x1)
-        y1 = self.yolo1(x2)
+        # y1 = self.yolo1(x2)
 
         x3 = self.conv3(input1)
         # R -1 -16
@@ -419,7 +367,7 @@ class Yolov4Head(nn.Module):
         x8 = self.conv8(x7)
         x9 = self.conv9(x8)
         x10 = self.conv10(x9)
-        y2 = self.yolo2(x10)
+        # y2 = self.yolo2(x10)
 
         # R -4
         x11 = self.conv11(x8)
@@ -433,8 +381,9 @@ class Yolov4Head(nn.Module):
         x16 = self.conv16(x15)
         x17 = self.conv17(x16)
         x18 = self.conv18(x17)
-        y3 = self.yolo3(x18)
-        return [y1, y2, y3]
+        return [x2, x10, x18]
+        # y3 = self.yolo3(x18)
+        # return [y1, y2, y3]
         # return y3
 
 

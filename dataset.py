@@ -132,19 +132,13 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
             if img.shape[2] >= 3:
                 hsv_src = cv2.cvtColor(sized.astype(np.float32), cv2.COLOR_RGB2HSV)  # RGB to HSV
                 hsv = cv2.split(hsv_src)
-
                 hsv[1] *= dsat
                 hsv[2] *= dexp
                 hsv[0] += 179 * dhue
-
                 hsv_src = cv2.merge(hsv)
-
                 sized = cv2.cvtColor(hsv_src, cv2.COLOR_HSV2RGB)  # HSV to RGB (the same as previous)
             else:
                 sized *= dexp
-
-        # cv2.imshow(window_name.str(), sized)
-        # cv2.waitKey(0)
 
         if blur:
             if blur == 1:
@@ -153,16 +147,6 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
             else:
                 ksize = (blur / 2) * 2 + 1
                 dst = cv2.GaussianBlur(sized, (ksize, ksize), 0)
-                # cv2.medianBlur(sized, dst, ksize)
-                # cv2.bilateralFilter(sized, dst, ksize, 75, 75)
-
-                # sharpen
-                # cv2.Mat img_tmp
-                # cv2.GaussianBlur(dst, img_tmp, cv2.Size(), 3)
-                # cv2.addWeighted(dst, 1.5, img_tmp, -0.5, 0, img_tmp)
-                # dst = img_tmp
-
-            # std::cout << " blur num_boxes = " << num_boxes << std::endl
 
             if blur == 1:
                 img_rect = [0, 0, sized.cols, sized.rows]
@@ -179,22 +163,11 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
             sized = dst
 
         if gaussian_noise:
-            # noise = cv2.Mat(sized.size(), sized.type())
             noise = np.array(sized.shape)
             gaussian_noise = min(gaussian_noise, 127)
             gaussian_noise = max(gaussian_noise, 0)
             cv2.randn(noise, 0, gaussian_noise)  # mean and variance
             sized = sized + noise
-            # cv2.normalize(sized_norm, sized_norm, 0.0, 255.0, cv2.NORM_MINMAX, sized.type())
-            # cv2.imshow("source", sized)
-            # cv2.imshow("gaussian noise", sized_norm)
-            # cv2.waitKey(0)
-            # sized = sized_norm
-
-        # char txt[100]
-        # sprintf(txt, "blur = %d", blur)
-        # cv2.putText(sized, txt, cv2.Point(100, 100), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.7, CV_RGB(255, 0, 0), 1, CV_AA)
-
     except:
         print("OpenCV can't augment image: " + str(w) + " x " + str(h))
         sized = mat
@@ -260,7 +233,7 @@ def draw_box(img, bboxes):
 
 
 class Yolo_dataset(Dataset):
-    def __init__(self, cfg):
+    def __init__(self, lable_path, cfg):
         super(Yolo_dataset, self).__init__()
         if cfg.mixup == 2:
             print("cutmix=1 - isn't supported for Detector")
@@ -272,7 +245,7 @@ class Yolo_dataset(Dataset):
         self.cfg = cfg
 
         truth = {}
-        f = open(Cfg.train_label, 'r', encoding='utf-8')
+        f = open(lable_path, 'r', encoding='utf-8')
         for line in f.readlines():
             data = line.split(" ")
             truth[data[0]] = []
@@ -314,38 +287,32 @@ class Yolo_dataset(Dataset):
             if img is None:
                 continue
             oh, ow, oc = img.shape
-            dh, dw, dc = np.array([oh, ow, oc]) * self.cfg.jitter
+            dh, dw, dc = np.array(np.array([oh, ow, oc]) * self.cfg.jitter,dtype=np.int)
 
-            if 1 or self.cfg.track == 0:
-                r1 = random.random()
-                r2 = random.random()
-                r3 = random.random()
-                r4 = random.random()
+            dhue = rand_uniform_strong(-self.cfg.hue, self.cfg.hue)
+            dsat = rand_scale(self.cfg.saturation)
+            dexp = rand_scale(self.cfg.exposure)
 
-                dhue = rand_uniform_strong(-self.cfg.hue, self.cfg.hue)
-                dsat = rand_scale(self.cfg.saturation)
-                dexp = rand_scale(self.cfg.exposure)
+            pleft = random.randint(-dw, dw)
+            pright = random.randint(-dw, dw)
+            ptop = random.randint(-dh, dh)
+            pbot = random.randint(-dh, dh)
 
-                flip = random.randint(0, 1) % 2 if self.cfg.flip else 0
+            flip = random.randint(0, 1) if self.cfg.flip else 0
 
-                if (self.cfg.blur):
-                    tmp_blur = random.randint(0, 2)  # 0 - disable, 1 - blur background, 2 - blur the whole image
-                    if tmp_blur == 0:
-                        blur = 0
-                    elif tmp_blur == 1:
-                        blur = 1
-                    else:
-                        blur = self.cfg.blur
-
-                if self.cfg.gaussian and random.randint(0, 1):
-                    gaussian_noise = self.cfg.gaussian
+            if (self.cfg.blur):
+                tmp_blur = random.randint(0, 2)  # 0 - disable, 1 - blur background, 2 - blur the whole image
+                if tmp_blur == 0:
+                    blur = 0
+                elif tmp_blur == 1:
+                    blur = 1
                 else:
-                    gaussian_noise = 0
+                    blur = self.cfg.blur
 
-            pleft = rand_precalc_random(-dw, dw, r1)
-            pright = rand_precalc_random(-dw, dw, r2)
-            ptop = rand_precalc_random(-dh, dh, r3)
-            pbot = rand_precalc_random(-dh, dh, r4)
+            if self.cfg.gaussian and random.randint(0, 1):
+                gaussian_noise = self.cfg.gaussian
+            else:
+                gaussian_noise = 0
 
             if self.cfg.letter_box:
                 img_ar = ow / oh
@@ -401,10 +368,12 @@ class Yolo_dataset(Dataset):
                 out_img, out_bbox = blend_truth_mosaic(out_img, ai, truth.copy(), self.cfg.w, self.cfg.h, cut_x,
                                                        cut_y, i, left_shift, right_shift, top_shift, bot_shift)
                 out_bboxes.append(out_bbox)
-                print(img_path)
+                # print(img_path)
         if use_mixup == 3:
             out_bboxes = np.concatenate(out_bboxes, axis=0)
-        return out_img, out_bboxes
+        out_bboxes1 = np.zeros([self.cfg.boxes,5])
+        out_bboxes1[:out_bboxes.shape[0]] = out_bboxes
+        return out_img, out_bboxes1
 
 
 if __name__ == "__main__":
