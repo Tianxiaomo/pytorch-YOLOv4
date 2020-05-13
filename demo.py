@@ -15,7 +15,7 @@
 # import time
 # from PIL import Image, ImageDraw
 # from models.tiny_yolo import TinyYoloNet
-from utils.utils import *
+from tool.utils import *
 from tool.darknet2pytorch import Darknet
 
 
