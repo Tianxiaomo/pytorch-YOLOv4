@@ -10,7 +10,7 @@ A minimal PyTorch implementation of YOLOv4.
 
 
 - [x] Inference
-- [ ] Train
+- [x] Train
     - [x] Mocaic
 
 # Weight
@@ -25,12 +25,6 @@ A minimal PyTorch implementation of YOLOv4.
 ```
 python demo.py cfgfile weightfile imgfile
 ```
-
-- [x] Convolution weight reshape
-- [x] Mish activation
-- [x] route number > 2
-- [x] Maxpooling
-- [ ] yololayer
 
 Reference:
 - https://github.com/eriklindernoren/PyTorch-YOLOv3
