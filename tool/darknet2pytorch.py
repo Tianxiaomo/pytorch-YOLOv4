@@ -1,10 +1,9 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from utils.region_loss import RegionLoss
-from utils.yolo_layer import YoloLayer
-from tool.cfg import *
+from tool.region_loss import RegionLoss
+from tool.yolo_layer import YoloLayer
+from tool.config import *
 
 
 class Mish(torch.nn.Module):

@@ -430,7 +430,7 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
         for m in anchor_masks[i]:
             masked_anchors += anchors[m * anchor_step:(m + 1) * anchor_step]
         masked_anchors = [anchor / strides[i] for anchor in masked_anchors]
-        boxes.append(get_region_boxes1(list_boxes[i].data.numpy(), 0.6, 80, masked_anchors, len(anchor_masks[i])))
+        boxes.append(get_region_boxes1(list_boxes[i].cpu().data.numpy(), 0.6, 80, masked_anchors, len(anchor_masks[i])))
         # boxes.append(get_region_boxes(list_boxes[i], 0.6, 80, masked_anchors, len(anchor_masks[i])))
     if img.shape[0] > 1:
         bboxs_for_imgs = [

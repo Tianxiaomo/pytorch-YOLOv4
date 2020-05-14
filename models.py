@@ -1,9 +1,5 @@
 import torch
 from torch import nn
-from torch.nn import functional as F
-
-# from utils.yolo_layer import YoloLayer
-import sys
 
 
 class Mish(torch.nn.Module):
@@ -443,7 +439,7 @@ if __name__ == "__main__":
 
     img = Image.open("data/dog.jpg").convert('RGB')
     sized = img.resize((608, 608))
-    from utils.utils import *
+    from tool.utils import *
 
     boxes = do_detect(model, sized, 0.5, 0.4, use_cuda)
 

@@ -1,6 +1,5 @@
-import sys
 import torch
-from utils.utils import convert2cpu
+from tool.utils import convert2cpu
 
 
 def parse_cfg(cfgfile):

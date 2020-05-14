@@ -13,6 +13,26 @@ A minimal PyTorch implementation of YOLOv4.
 - [x] Train
     - [x] Mocaic
 
+```
+├── README.md
+├── dataset.py      dataset
+├── demo.py         demo --> tool/darknet2pytorch
+├── models.py       model for pytorch
+├── train.py        train models.py
+├── cfg.py          cfg.py for train
+├── cfg             cfg --> darknet2pytorch
+├── data            
+├── weight          --> darknet2pytorch
+├── tool
+│   ├── camera.py           a demo camera
+│   ├── coco_annotatin.py       coco dataset generator
+│   ├── config.py
+│   ├── darknet2pytorch.py
+│   ├── region_loss.py
+│   ├── utils.py
+│   └── yolo_layer.py
+```
+
 # Weight
 
 - baidu(https://pan.baidu.com/s/1dAGEW8cm-dqK14TbhhVetA     Extraction code:dm5b)

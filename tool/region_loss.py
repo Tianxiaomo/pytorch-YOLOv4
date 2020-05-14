@@ -1,10 +1,6 @@
-import time
-import torch
-import math
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
-from utils.utils import *
+from tool.utils import *
 
 
 def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, nH, nW, noobject_scale, object_scale,
