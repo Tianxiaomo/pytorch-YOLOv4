@@ -126,6 +126,51 @@ def detect_cv2(cfgfile, weightfile, imgfile):
     plot_boxes_cv2(img, boxes, savename='predictions.jpg', class_names=class_names)
 
 
+def detect_cv2_camera(cfgfile, weightfile):
+    import cv2
+    m = Darknet(cfgfile)
+
+    m.print_network()
+    m.load_weights(weightfile)
+    print('Loading weights from %s... Done!' % (weightfile))
+
+    num_classes = 80
+    if num_classes == 20:
+        namesfile = 'data/voc.names'
+    elif num_classes == 80:
+        namesfile = 'data/coco.names'
+    else:
+        namesfile = 'data/names'
+
+    use_cuda = 1
+    if use_cuda:
+        m.cuda()
+
+    cap = cv2.VideoCapture(0)
+    # cap = cv2.VideoCapture("./test.mp4")
+    cap.set(3, 1280)
+    cap.set(4, 720)
+    print("Starting the YOLO loop...")
+
+    while True:
+        ret, img = cap.read()
+        sized = cv2.resize(img, (m.width, m.height))
+        sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
+
+        start = time.time()
+        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        finish = time.time()
+        print('Predicted in %f seconds.' % (finish - start))
+
+        class_names = load_class_names(namesfile)
+        result_img = plot_boxes_cv2(img, boxes, savename=None, class_names=class_names)
+
+        cv2.imshow('Yolo demo', result_img)
+        cv2.waitKey(1)
+
+    cap.release()
+
+
 def detect_skimage(cfgfile, weightfile, imgfile):
     from skimage import io
     from skimage.transform import resize
@@ -169,6 +214,10 @@ if __name__ == '__main__':
         # detect_imges(cfgfile, weightfile)
         # detect_cv2(cfgfile, weightfile, imgfile)
         # detect_skimage(cfgfile, weightfile, imgfile)
+    elif len(sys.argv) == 3:
+        cfgfile = sys.argv[1]
+        weightfile = sys.argv[2]
+        detect_cv2_camera(cfgfile, weightfile)
     else:
         print('Usage: ')
         print('  python demo.py cfgfile weightfile imgfile')
