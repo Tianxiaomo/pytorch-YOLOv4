@@ -44,6 +44,8 @@ def rand_precalc_random(min, max, random_part):
 
 
 def fill_truth_detection(bboxes, num_boxes, classes, flip, dx, dy, sx, sy, net_w, net_h):
+    if bboxes.shape[0] == 0:
+        return bboxes, 10000
     np.random.shuffle(bboxes)
     bboxes[:, 0] -= dx
     bboxes[:, 2] -= dx
@@ -64,6 +66,9 @@ def fill_truth_detection(bboxes, num_boxes, classes, flip, dx, dy, sx, sy, net_w
     for i in out_box:
         list_box.remove(i)
     bboxes = bboxes[list_box]
+
+    if bboxes.shape[0] == 0:
+        return bboxes, 10000
 
     bboxes = bboxes[np.where((bboxes[:, 4] < classes) & (bboxes[:, 4] >= 0))[0]]
 
@@ -287,7 +292,7 @@ class Yolo_dataset(Dataset):
             if img is None:
                 continue
             oh, ow, oc = img.shape
-            dh, dw, dc = np.array(np.array([oh, ow, oc]) * self.cfg.jitter,dtype=np.int)
+            dh, dw, dc = np.array(np.array([oh, ow, oc]) * self.cfg.jitter, dtype=np.int)
 
             dhue = rand_uniform_strong(-self.cfg.hue, self.cfg.hue)
             dsat = rand_scale(self.cfg.saturation)
@@ -371,7 +376,7 @@ class Yolo_dataset(Dataset):
                 # print(img_path)
         if use_mixup == 3:
             out_bboxes = np.concatenate(out_bboxes, axis=0)
-        out_bboxes1 = np.zeros([self.cfg.boxes,5])
+        out_bboxes1 = np.zeros([self.cfg.boxes, 5])
         out_bboxes1[:out_bboxes.shape[0]] = out_bboxes
         return out_img, out_bboxes1
 
@@ -379,9 +384,9 @@ class Yolo_dataset(Dataset):
 if __name__ == "__main__":
     from cfg import Cfg
 
-    dataset = Yolo_dataset(Cfg)
-    for i in range(100):
+    dataset = Yolo_dataset(Cfg.train_label, Cfg)
+    for i in range(10000):
         out_img, out_bboxes = dataset.__getitem__(random.randint(0, 100))
         a = draw_box(out_img.copy(), out_bboxes.astype(np.int32))
-        plt.imshow(a.astype(np.int32))
-        plt.show()
+        # plt.imshow(a.astype(np.int32))
+        # plt.show()

@@ -116,21 +116,21 @@ class Yolo_loss(nn.Module):
         tgt_scale = torch.zeros(batchsize, self.n_anchors, fsize, fsize, 2).to(self.device)
         target = torch.zeros(batchsize, self.n_anchors, fsize, fsize, n_ch).to(self.device)
 
-        labels = labels.cpu().data
+        #labels = labels.cpu().data
         nlabel = (labels.sum(dim=2) > 0).sum(dim=1)  # number of objects
 
         truth_x_all = (labels[:, :, 2] + labels[:, :, 0]) / (self.strides[output_id] * 2)
         truth_y_all = (labels[:, :, 3] + labels[:, :, 1]) / (self.strides[output_id] * 2)
         truth_w_all = (labels[:, :, 2] - labels[:, :, 0]) / self.strides[output_id]
         truth_h_all = (labels[:, :, 3] - labels[:, :, 1]) / self.strides[output_id]
-        truth_i_all = truth_x_all.to(torch.int16).numpy()
-        truth_j_all = truth_y_all.to(torch.int16).numpy()
+        truth_i_all = truth_x_all.to(torch.int16).cpu().numpy()
+        truth_j_all = truth_y_all.to(torch.int16).cpu().numpy()
 
         for b in range(batchsize):
             n = int(nlabel[b])
             if n == 0:
                 continue
-            truth_box = torch.zeros(n, 4)
+            truth_box = torch.zeros(n, 4).to(self.device)
             truth_box[:n, 2] = truth_w_all[b, :n]
             truth_box[:n, 3] = truth_h_all[b, :n]
             truth_i = truth_i_all[b, :n]
@@ -170,7 +170,7 @@ class Yolo_loss(nn.Module):
                     target[b, a, j, i, 3] = torch.log(
                         truth_h_all[b, ti] / torch.Tensor(self.masked_anchors[output_id])[best_n[ti], 1] + 1e-16)
                     target[b, a, j, i, 4] = 1
-                    target[b, a, j, i, 5 + labels[b, ti, 4].to(torch.int16).numpy()] = 1
+                    target[b, a, j, i, 5 + labels[b, ti, 4].to(torch.int16).cpu().numpy()] = 1
                     tgt_scale[b, a, j, i, :] = torch.sqrt(2 - truth_w_all[b, ti] * truth_h_all[b, ti] / fsize / fsize)
         return obj_mask, tgt_mask, tgt_scale, target
 
@@ -230,7 +230,7 @@ def collate(batch):
     return images, bboxes
 
 
-def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=2, img_scale=0.5):
+def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=20, img_scale=0.5):
     train_dataset = Yolo_dataset(config.train_label, config)
     val_dataset = Yolo_dataset(config.val_label, config)
 
@@ -267,7 +267,7 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
 
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate, betas=(0.9, 0.999), eps=1e-08)
 
-    criterion = Yolo_loss(device=device)
+    criterion = Yolo_loss(device=device,batch=config.batch//config.subdivisions)
     # scheduler = ReduceLROnPlateau(optimizer, mode='max', verbose=True, patience=6, min_lr=1e-7)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, 0.001, 1e-6, 20)
 
@@ -312,19 +312,12 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
                                         'loss_l2': loss_l2.item()
                                         })
                     logging.debug('Train step_{}: loss : {},loss xy : {},loss wh : {},'
-                                 'loss obj : {}，loss cls : {},loss l2 : {}'
-                                 .format(global_step, loss.item(), loss_xy.item(),
-                                         loss_wh.item(), loss_obj.item(),
-                                         loss_cls.item(), loss_l2.item()))
+                                  'loss obj : {}，loss cls : {},loss l2 : {}'
+                                  .format(global_step, loss.item(), loss_xy.item(),
+                                          loss_wh.item(), loss_obj.item(),
+                                          loss_cls.item(), loss_l2.item()))
 
                 pbar.update(images.shape[0])
-
-            # logging.info('Validation Dice Coeff: {},{},{}'.format(val_acc, val_acc_every, val_acc_last))
-            # lr = scheduler.step(val_acc_last)
-            # # writer.add_scalar('lr', lr, global_step)
-            # writer.add_scalar('Acc/test', val_acc, global_step)
-            # writer.add_scalar('Acc_every/test', val_acc_every, global_step)
-            # writer.add_scalar('Acc_last/test', val_acc_last, global_step)
 
             if save_cp:
                 try:
@@ -355,40 +348,6 @@ def get_args(**kwargs):
     for k in args.keys():
         cfg[k] = args.get(k)
     return edict(cfg)
-
-
-def init_logging(log_file_path=None, log_file_mode='w', log_overwrite_flag=False, log_level=logging.INFO):
-    # basically, the basic log offers console output
-    console_handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s[%(levelname)s]: %(message)s')
-    console_handler.setFormatter(formatter)
-
-    logging.getLogger().setLevel(log_level)
-    logging.getLogger().addHandler(console_handler)
-
-    if not log_file_path or log_file_path == '':
-        print('No log file is specified. The log information is only displayed in console.')
-        return
-
-    # check that the log_file is already existed or not
-    if not os.path.exists(log_file_path):
-        location_dir = os.path.dirname(log_file_path)
-        if not os.path.exists(location_dir):
-            os.makedirs(location_dir)
-
-        file_handler = logging.FileHandler(filename=log_file_path, mode=log_file_mode)
-        file_handler.setFormatter(formatter)
-        logging.getLogger().addHandler(file_handler)
-    else:
-        if log_overwrite_flag:
-            print(
-                'The file [%s] is existed. And it is to be handled according to the arg [file_mode](the default is \'w\').' % log_file_path)
-            file_handler = logging.FileHandler(filename=log_file_path, mode=log_file_mode)
-            file_handler.setFormatter(formatter)
-            logging.getLogger().addHandler(file_handler)
-        else:
-            print('The file [%s] is existed. The [overwrite_flag] is False, please change the log file name.')
-            sys.exit(0)
 
 
 def init_logger(log_file=None, log_dir=None, log_level=logging.INFO, mode='w', stdout=True):
@@ -428,7 +387,6 @@ def init_logger(log_file=None, log_dir=None, log_level=logging.INFO, mode='w', s
 
 
 if __name__ == "__main__":
-    # logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s', filename='log.txt')
     logging = init_logger(log_dir='log')
     cfg = get_args(**Cfg)
     os.environ["CUDA_VISIBLE_DEVICES"] = cfg.gpu

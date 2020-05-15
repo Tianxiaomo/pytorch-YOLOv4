@@ -415,7 +415,7 @@ class Yolov4(nn.Module):
 if __name__ == "__main__":
     model = Yolov4()
 
-    pretrained_dict = torch.load('yolov4.pth')
+    pretrained_dict = torch.load('weight/yolov4.pth')
     model_dict = model.state_dict()
     # 1. filter out unnecessary keys
     pretrained_dict = {k1: v for (k, v), k1 in zip(pretrained_dict.items(), model_dict)}
