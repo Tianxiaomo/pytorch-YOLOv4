@@ -1,0 +1,10 @@
+numpy==1.18.2
+torch==1.4.0
+tensorboardX==2.0
+scikit_image==0.16.2
+matplotlib==2.2.3
+tqdm==4.43.0
+easydict==1.9
+Pillow==7.1.2
+skimage
+opencv_python
