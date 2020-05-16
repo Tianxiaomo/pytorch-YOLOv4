@@ -277,7 +277,6 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
         epoch_step = 0
 
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img', ncols=50) as pbar:
-
             for i, batch in enumerate(train_loader):
                 global_step += 1
                 epoch_step += 1
@@ -325,7 +324,7 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
                     logging.info('Created checkpoint directory')
                 except OSError:
                     pass
-                torch.save(model.state_dict(), config.checkpoints + f'Yolov4_epoch{epoch + 1}.pth')
+                torch.save(model.state_dict(), os.path.join(config.checkpoints, f'Yolov4_epoch{epoch + 1}.pth'))
                 logging.info(f'Checkpoint {epoch + 1} saved !')
 
     writer.close()
