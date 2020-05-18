@@ -28,7 +28,7 @@ Cfg.hue = .1
 Cfg.learning_rate = 0.00261
 Cfg.burn_in = 1000
 Cfg.max_batches = 500500
-Cfg.steps = 400000, 450000
+Cfg.steps = [400000, 450000]
 Cfg.policy = Cfg.steps
 Cfg.scales = .1, .1
 
@@ -45,7 +45,7 @@ Cfg.flip = 1
 Cfg.blur = 0
 Cfg.gaussian = 0
 Cfg.boxes = 60  # box num
-Cfg.TRAIN_EPOCHS = 500
+Cfg.TRAIN_EPOCHS = 300
 Cfg.train_label = 'data/train.txt'
 Cfg.val_label = 'data/val.txt'
 Cfg.TRAIN_OPTIMIZER = 'adam'

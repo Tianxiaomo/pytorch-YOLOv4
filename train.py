@@ -116,7 +116,7 @@ class Yolo_loss(nn.Module):
         tgt_scale = torch.zeros(batchsize, self.n_anchors, fsize, fsize, 2).to(self.device)
         target = torch.zeros(batchsize, self.n_anchors, fsize, fsize, n_ch).to(self.device)
 
-        #labels = labels.cpu().data
+        # labels = labels.cpu().data
         nlabel = (labels.sum(dim=2) > 0).sum(dim=1)  # number of objects
 
         truth_x_all = (labels[:, :, 2] + labels[:, :, 0]) / (self.strides[output_id] * 2)
@@ -265,9 +265,22 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
         Optimizer:       {config.TRAIN_OPTIMIZER}
     ''')
 
-    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate, betas=(0.9, 0.999), eps=1e-08)
+    # learning rate setup
+    def burnin_schedule(i):
+        if i < config.burn_in:
+            factor = pow(i / config.burn_in, 4)
+        elif i < config.steps[0]:
+            factor = 1.0
+        elif i < config.steps[1]:
+            factor = 0.1
+        else:
+            factor = 0.01
+        return factor
 
-    criterion = Yolo_loss(device=device,batch=config.batch//config.subdivisions)
+    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate / config.batch, betas=(0.9, 0.999), eps=1e-08)
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, burnin_schedule)
+
+    criterion = Yolo_loss(device=device, batch=config.batch // config.subdivisions)
     # scheduler = ReduceLROnPlateau(optimizer, mode='max', verbose=True, patience=6, min_lr=1e-7)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, 0.001, 1e-6, 20)
 
@@ -288,33 +301,37 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
 
                 bboxes_pred = model(images)
                 loss, loss_xy, loss_wh, loss_obj, loss_cls, loss_l2 = criterion(bboxes_pred, bboxes)
-                loss = loss / config.subdivisions
+                # loss = loss / config.subdivisions
                 loss.backward()
 
                 epoch_loss += loss.item()
 
                 if i % config.subdivisions == 0:
                     optimizer.step()
+                    scheduler.step()
                     model.zero_grad()
 
-                if epoch_step % log_step == 0:
+                if epoch_step % (log_step * config.subdivisions) == 0:
                     writer.add_scalar('Loss/train', loss.item(), global_step)
                     writer.add_scalar('loss_xy/train', loss_xy.item(), global_step)
                     writer.add_scalar('loss_wh/train', loss_wh.item(), global_step)
                     writer.add_scalar('loss_obj/train', loss_obj.item(), global_step)
                     writer.add_scalar('loss_cls/train', loss_cls.item(), global_step)
                     writer.add_scalar('loss_l2/train', loss_l2.item(), global_step)
+                    writer.add_scalar('lr', scheduler.get_lr()[0] * config.batch, global_step)
                     pbar.set_postfix(**{'loss (batch)': loss.item(), 'loss_xy': loss_xy.item(),
                                         'loss_wh': loss_wh.item(),
                                         'loss_obj': loss_obj.item(),
                                         'loss_cls': loss_cls.item(),
-                                        'loss_l2': loss_l2.item()
+                                        'loss_l2': loss_l2.item(),
+                                        'lr': scheduler.get_lr()[0] * config.batch
                                         })
                     logging.debug('Train step_{}: loss : {},loss xy : {},loss wh : {},'
-                                  'loss obj : {}，loss cls : {},loss l2 : {}'
+                                  'loss obj : {}，loss cls : {},loss l2 : {},lr : {}'
                                   .format(global_step, loss.item(), loss_xy.item(),
                                           loss_wh.item(), loss_obj.item(),
-                                          loss_cls.item(), loss_l2.item()))
+                                          loss_cls.item(), loss_l2.item(),
+                                          scheduler.get_lr()[0] * config.batch))
 
                 pbar.update(images.shape[0])
 
