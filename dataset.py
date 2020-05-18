@@ -224,7 +224,7 @@ def blend_truth_mosaic(out_img, img, bboxes, w, h, cut_x, cut_y, i_mixup,
 
         out_img[cut_y:, :cut_x] = img[cut_y - bot_shift:h - bot_shift, left_shift:left_shift + cut_x]
     if i_mixup == 3:
-        bboxes = filter_truth(bboxes, cut_x - right_shift, cut_y - bot_shift, cut_x, h - cut_y, cut_x, cut_y)
+        bboxes = filter_truth(bboxes, cut_x - right_shift, cut_y - bot_shift, w - cut_x, h - cut_y, cut_x, cut_y)
 
         out_img[cut_y:, cut_x:] = img[cut_y - bot_shift:h - bot_shift, cut_x - right_shift:w - right_shift]
 
@@ -377,16 +377,19 @@ class Yolo_dataset(Dataset):
         if use_mixup == 3:
             out_bboxes = np.concatenate(out_bboxes, axis=0)
         out_bboxes1 = np.zeros([self.cfg.boxes, 5])
-        out_bboxes1[:min(out_bboxes.shape[0],self.cfg.boxes)] = out_bboxes[:min(out_bboxes.shape[0],self.cfg.boxes)]
+        out_bboxes1[:min(out_bboxes.shape[0], self.cfg.boxes)] = out_bboxes[:min(out_bboxes.shape[0], self.cfg.boxes)]
         return out_img, out_bboxes1
 
 
 if __name__ == "__main__":
     from cfg import Cfg
 
+    random.seed(2020)
+    np.random.seed(2020)
+    Cfg.dataset_dir = '/mnt/e/Dataset'
     dataset = Yolo_dataset(Cfg.train_label, Cfg)
-    for i in range(10000):
-        out_img, out_bboxes = dataset.__getitem__(random.randint(0, 100))
+    for i in range(100):
+        out_img, out_bboxes = dataset.__getitem__(i)
         a = draw_box(out_img.copy(), out_bboxes.astype(np.int32))
-        # plt.imshow(a.astype(np.int32))
-        # plt.show()
+        plt.imshow(a.astype(np.int32))
+        plt.show()
