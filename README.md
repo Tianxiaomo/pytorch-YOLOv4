@@ -34,14 +34,45 @@ A minimal PyTorch implementation of YOLOv4.
 │   └── yolo_layer.py
 ```
 
-# Weight
+![image](https://user-gold-cdn.xitu.io/2020/4/26/171b5a6c8b3bd513?w=768&h=576&f=jpeg&s=78882)
 
+# 0.Weight
+
+## 0.1 darkent
 - baidu(https://pan.baidu.com/s/1dAGEW8cm-dqK14TbhhVetA     Extraction code:dm5b)
 - google(https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT)
 
-![image](https://user-gold-cdn.xitu.io/2020/4/26/171b5a6c8b3bd513?w=768&h=576&f=jpeg&s=78882)
+## 0.2 pytorch
+you can use darknet2pytorch to convert it yourself, or download my converted model.
 
-# Inference
+- baidu
+    - yolov4.pth(https://pan.baidu.com/s/1ZroDvoGScDgtE1ja_QqJVw Extraction code:xrq9) 
+    - yolov4.conv.137.pth(https://pan.baidu.com/s/1ovBie4YyVQQoUrC3AY0joA Extraction code:kcel)
+- google
+    - yolov4.pth(https://drive.google.com/open?id=1wv_LiFeCRYwtpkqREPeI13-gPELBDwuJ)
+    - yolov4.conv.137.pth(https://drive.google.com/open?id=1fcbR0bWzYfIEdLJPzOsn4R5mlvR6IQyA)
+
+# 1.Train
+
+1. Download weight
+2. Transform data
+
+    For coco dataset,you can use tool/coco_annotatin.py.
+    ```
+    # train.txt
+    image_path1 x1,y1,x2,y2,id x1,y1,x2,y2,id x1,y1,x2,y2,id ...
+    image_path2 x1,y1,x2,y2,id x1,y1,x2,y2,id x1,y1,x2,y2,id ...
+    ...
+    ...
+    ```
+3. Train
+
+    you can set parameters in cfg.py.
+    ```
+     python train.py -g [GPU_ID] -dir [Dataset direction] ...
+    ```
+
+# 2.Inference
 - download model weight https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT
 ```
 python demo.py cfgfile weightfile imgfile

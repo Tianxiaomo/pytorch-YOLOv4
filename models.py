@@ -56,6 +56,7 @@ class Conv_Bn_Activation(nn.Module):
     def forward(self, x):
         for l in self.conv:
             x = l(x)
+        print(x[0, 0, 0, 0:2])
         return x
 
 
@@ -276,7 +277,7 @@ class Neek(nn.Module):
         m1 = self.maxpool1(x3)
         m2 = self.maxpool2(x3)
         m3 = self.maxpool3(x3)
-        spp = torch.cat([m1, m2, m3, x3], dim=1)
+        spp = torch.cat([m3, m2, m1, x3], dim=1)
         # SPP end
         x4 = self.conv4(spp)
         x5 = self.conv5(x4)
@@ -386,7 +387,7 @@ class Yolov4Head(nn.Module):
 
 
 class Yolov4(nn.Module):
-    def __init__(self):
+    def __init__(self, yolov4conv137weight=None):
         super().__init__()
         # backbone
         self.down1 = DownSample1()
@@ -396,6 +397,17 @@ class Yolov4(nn.Module):
         self.down5 = DownSample5()
         # neek
         self.neek = Neek()
+        # yolov4conv137
+        if yolov4conv137weight:
+            _model = nn.Sequential(self.down1, self.down2, self.down3, self.down4, self.down5, self.neek)
+            pretrained_dict = torch.load(yolov4conv137weight)
+
+            model_dict = _model.state_dict()
+            # 1. filter out unnecessary keys
+            pretrained_dict = {k1: v for (k, v), k1 in zip(pretrained_dict.items(), model_dict)}
+            # 2. overwrite entries in the existing state dict
+            model_dict.update(pretrained_dict)
+            _model.load_state_dict(model_dict)
         # head
         self.head = Yolov4Head()
 
