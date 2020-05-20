@@ -56,7 +56,6 @@ class Conv_Bn_Activation(nn.Module):
     def forward(self, x):
         for l in self.conv:
             x = l(x)
-        print(x[0, 0, 0, 0:2])
         return x
 
 
