@@ -141,7 +141,7 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
                 hsv[2] *= dexp
                 hsv[0] += 179 * dhue
                 hsv_src = cv2.merge(hsv)
-                sized = cv2.cvtColor(hsv_src, cv2.COLOR_HSV2RGB)  # HSV to RGB (the same as previous)
+                sized = np.clip(cv2.cvtColor(hsv_src, cv2.COLOR_HSV2RGB),0,255)  # HSV to RGB (the same as previous)
             else:
                 sized *= dexp
 
