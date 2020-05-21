@@ -86,13 +86,14 @@ def bboxes_ciou(bboxes_a, bboxes_b, xyxy=True):
 
 
 class Yolo_loss(nn.Module):
-    def __init__(self, n_classes=80, n_anchors=3, device=None, batch=2):
+    def __init__(self, n_classes=80, n_anchors=3, device=None, batch=2, label_smoothing=True):
         super(Yolo_loss, self).__init__()
         self.device = device
         self.strides = [8, 16, 32]
         image_size = 608
         self.n_classes = n_classes
         self.n_anchors = n_anchors
+        self.label_smoothing = label_smoothing
 
         self.anchors = [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]]
         self.anch_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
@@ -215,6 +216,9 @@ class Yolo_loss(nn.Module):
             target[..., 4] *= obj_mask
             target[..., np.r_[0:4, 5:n_ch]] *= tgt_mask
             target[..., 2:4] *= tgt_scale
+            
+            if self.label_smoothing:
+                target[..., 5:] = target[..., 5:] * 0.9
 
             loss_xy += F.binary_cross_entropy(input=output[..., :2], target=target[..., :2],
                                               weight=tgt_scale * tgt_scale, size_average=False)
