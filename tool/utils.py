@@ -118,7 +118,7 @@ def convert2cpu_long(gpu_matrix):
     return torch.LongTensor(gpu_matrix.size()).copy_(gpu_matrix)
 
 
-def get_region_boxes(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1, validation=False):
+def get_region_boxes_in_model(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1, validation=False):
     anchor_step = len(anchors) // num_anchors
     if output.dim() == 3:
         output = output.unsqueeze(0)
@@ -204,7 +204,7 @@ def get_region_boxes(output, conf_thresh, num_classes, anchors, num_anchors, onl
     return all_boxes
 
 
-def get_region_boxes1(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1, validation=False):
+def get_region_boxes_out_model(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1, validation=False):
     anchor_step = len(anchors) // num_anchors
     if len(output.shape) == 3:
         output = np.expand_dims(output, axis=0)
@@ -417,7 +417,17 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
     img = torch.autograd.Variable(img)
     t2 = time.time()
 
-    list_boxes = model(img)
+    list_features = model(img)
+
+    list_features_numpy = []
+    for feature in list_features:
+        list_features_numpy.append(feature.data.numpy())
+
+    return post_processing(img, nms_thresh, list_features_numpy)
+
+
+
+def post_processing(img, nms_thresh, list_features_numpy):
 
     anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
     num_anchors = 9
@@ -430,7 +440,7 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
         for m in anchor_masks[i]:
             masked_anchors += anchors[m * anchor_step:(m + 1) * anchor_step]
         masked_anchors = [anchor / strides[i] for anchor in masked_anchors]
-        boxes.append(get_region_boxes1(list_boxes[i].cpu().data.numpy(), 0.6, 80, masked_anchors, len(anchor_masks[i])))
+        boxes.append(get_region_boxes_out_model(list_features_numpy[i], 0.6, 80, masked_anchors, len(anchor_masks[i])))
         # boxes.append(get_region_boxes(list_boxes[i], 0.6, 80, masked_anchors, len(anchor_masks[i])))
     if img.shape[0] > 1:
         bboxs_for_imgs = [

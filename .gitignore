@@ -1,6 +1,7 @@
 ttest
 *.weights
 *.pth
+*.onnx
 
 __pycache__
 .idea
@@ -9,3 +10,4 @@ runs
 log
 
 predictions.jpg
+predictions_onnx.jpg

@@ -213,5 +213,5 @@ class YoloLayer(nn.Module):
                 for m in self.anchor_mask:
                     masked_anchors += self.anchors[m * self.anchor_step:(m + 1) * self.anchor_step]
                 masked_anchors = [anchor / self.stride for anchor in masked_anchors]
-                boxes = get_region_boxes(output.data, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask))
+                boxes = get_region_boxes_in_model(output.data, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask))
                 return boxes

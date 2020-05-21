@@ -16,14 +16,16 @@ A minimal PyTorch implementation of YOLOv4.
 
 ```
 ├── README.md
-├── dataset.py      dataset
-├── demo.py         demo --> tool/darknet2pytorch
-├── models.py       model for pytorch
-├── train.py        train models.py
-├── cfg.py          cfg.py for train
-├── cfg             cfg --> darknet2pytorch
+├── dataset.py       dataset
+├── demo.py          demo to run pytorch --> tool/darknet2pytorch
+├── darknet2onnx.py  tool to convert into onnx --> tool/darknet2pytorch
+├── demo_onnx.py     demo to run the converted onnx model
+├── models.py        model for pytorch
+├── train.py         train models.py
+├── cfg.py           cfg.py for train
+├── cfg              cfg --> darknet2pytorch
 ├── data            
-├── weight          --> darknet2pytorch
+├── weight           --> darknet2pytorch
 ├── tool
 │   ├── camera.py           a demo camera
 │   ├── coco_annotatin.py       coco dataset generator
@@ -75,7 +77,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 # 2.Inference
 - download model weight https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT
 ```
-python demo.py cfgfile weightfile imgfile
+python demo.py <cfgFile> <weightFile> <imgFile>
 ```
 
 Reference:
@@ -91,3 +93,30 @@ Reference:
   year={2020}
 }
 ```
+
+# 3.Conversion to ONNX
+
+- **Run python script to generate onnx model from darknet**
+
+    You can specify batch size (default: batch_size == 1)
+
+    ```sh
+    python darknet2onnx.py <cfgFile> <weightFile>
+    ```
+
+    or
+
+    ```sh
+    python darknet2onnx.py <cfgFile> <weightFile> <batch_size>
+    ```
+
+- **The demo to run the onnx model**
+
+    This demo only support batch_size == 1.
+
+    You have to update the batch dimension of the input and outputs for other batch sizes.
+
+    ```sh
+    pip install onnxruntime # If onnxruntime is not installed
+    python demo_onnx.py <path_to_onnx_file> <path_to_sample_image>
+    ```
