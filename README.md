@@ -112,11 +112,11 @@ Reference:
 
 - **The demo to run the onnx model**
 
-    This demo only support batch_size == 1.
-
-    You have to update the batch dimension of the input and outputs for other batch sizes.
-
     ```sh
     pip install onnxruntime # If onnxruntime is not installed
     python demo_onnx.py <path_to_onnx_file> <path_to_sample_image>
     ```
+
+    This demo only support batch_size == 1.
+
+    You have to update the batch dimension of inputs/outputs for other batch sizes.
