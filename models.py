@@ -312,10 +312,10 @@ class Neck(nn.Module):
 
 
 class Yolov4Head(nn.Module):
-    def __init__(self):
+    def __init__(self, output_ch):
         super().__init__()
         self.conv1 = Conv_Bn_Activation(128, 256, 3, 1, 'leaky')
-        self.conv2 = Conv_Bn_Activation(256, 255, 1, 1, 'linear', bn=False, bias=True)
+        self.conv2 = Conv_Bn_Activation(256, output_ch, 1, 1, 'linear', bn=False, bias=True)
         # self.yolo1 = YoloLayer(anchor_mask=[0, 1, 2], num_classes=80,
         #                        anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
         #                        num_anchors=9, stride=8)
@@ -330,7 +330,7 @@ class Yolov4Head(nn.Module):
         self.conv7 = Conv_Bn_Activation(256, 512, 3, 1, 'leaky')
         self.conv8 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
         self.conv9 = Conv_Bn_Activation(256, 512, 3, 1, 'leaky')
-        self.conv10 = Conv_Bn_Activation(512, 255, 1, 1, 'linear', bn=False, bias=True)
+        self.conv10 = Conv_Bn_Activation(512, output_ch, 1, 1, 'linear', bn=False, bias=True)
         # self.yolo2 = YoloLayer(anchor_mask=[3, 4, 5], num_classes=80,
         #                        anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
         #                        num_anchors=9, stride=16)
@@ -345,7 +345,7 @@ class Yolov4Head(nn.Module):
         self.conv15 = Conv_Bn_Activation(512, 1024, 3, 1, 'leaky')
         self.conv16 = Conv_Bn_Activation(1024, 512, 1, 1, 'leaky')
         self.conv17 = Conv_Bn_Activation(512, 1024, 3, 1, 'leaky')
-        self.conv18 = Conv_Bn_Activation(1024, 255, 1, 1, 'linear', bn=False, bias=True)
+        self.conv18 = Conv_Bn_Activation(1024, output_ch, 1, 1, 'linear', bn=False, bias=True)
         # self.yolo3 = YoloLayer(anchor_mask=[6, 7, 8], num_classes=80,
         #                        anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
         #                        num_anchors=9, stride=32)
@@ -386,8 +386,11 @@ class Yolov4Head(nn.Module):
 
 
 class Yolov4(nn.Module):
-    def __init__(self, yolov4conv137weight=None):
+    def __init__(self, yolov4conv137weight=None, n_classes = 80):
         super().__init__()
+        
+        output_ch = (4 + 1 + n_classes) * 3
+        
         # backbone
         self.down1 = DownSample1()
         self.down2 = DownSample2()
@@ -408,7 +411,7 @@ class Yolov4(nn.Module):
             model_dict.update(pretrained_dict)
             _model.load_state_dict(model_dict)
         # head
-        self.head = Yolov4Head()
+        self.head = Yolov4Head(output_ch)
 
     def forward(self, input):
         d1 = self.down1(input)
