@@ -141,7 +141,7 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
                 hsv[2] *= dexp
                 hsv[0] += 179 * dhue
                 hsv_src = cv2.merge(hsv)
-                sized = np.clip(cv2.cvtColor(hsv_src, cv2.COLOR_HSV2RGB),0,255)  # HSV to RGB (the same as previous)
+                sized = np.clip(cv2.cvtColor(hsv_src, cv2.COLOR_HSV2RGB), 0, 255)  # HSV to RGB (the same as previous)
             else:
                 sized *= dexp
 
@@ -211,21 +211,22 @@ def filter_truth(bboxes, dx, dy, sx, sy, xd, yd):
 
 def blend_truth_mosaic(out_img, img, bboxes, w, h, cut_x, cut_y, i_mixup,
                        left_shift, right_shift, top_shift, bot_shift):
+    left_shift = min(left_shift, w - cut_x)
+    top_shift = min(top_shift, h - cut_y)
+    right_shift = min(right_shift, cut_x)
+    bot_shift = min(bot_shift, cut_y)
+
     if i_mixup == 0:
         bboxes = filter_truth(bboxes, left_shift, top_shift, cut_x, cut_y, 0, 0)
-
         out_img[:cut_y, :cut_x] = img[top_shift:top_shift + cut_y, left_shift:left_shift + cut_x]
     if i_mixup == 1:
         bboxes = filter_truth(bboxes, cut_x - right_shift, top_shift, w - cut_x, cut_y, cut_x, 0)
-
         out_img[:cut_y, cut_x:] = img[top_shift:top_shift + cut_y, cut_x - right_shift:w - right_shift]
     if i_mixup == 2:
         bboxes = filter_truth(bboxes, left_shift, cut_y - bot_shift, cut_x, h - cut_y, 0, cut_y)
-
         out_img[cut_y:, :cut_x] = img[cut_y - bot_shift:h - bot_shift, left_shift:left_shift + cut_x]
     if i_mixup == 3:
         bboxes = filter_truth(bboxes, cut_x - right_shift, cut_y - bot_shift, w - cut_x, h - cut_y, cut_x, cut_y)
-
         out_img[cut_y:, cut_x:] = img[cut_y - bot_shift:h - bot_shift, cut_x - right_shift:w - right_shift]
 
     return out_img, bboxes

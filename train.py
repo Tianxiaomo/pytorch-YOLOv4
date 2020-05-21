@@ -268,13 +268,14 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
         Epochs:          {epochs}
         Batch size:      {config.batch}
         Subdivisions:    {config.subdivisions}
-        Learning rate:   {config.lr}
+        Learning rate:   {config.learning_rate}
         Training size:   {n_train}
         Validation size: {n_val}
         Checkpoints:     {save_cp}
         Device:          {device.type}
         Images size:     {config.width}
         Optimizer:       {config.TRAIN_OPTIMIZER}
+        Pretrained:
     ''')
 
     # learning rate setup
@@ -324,12 +325,12 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
                     model.zero_grad()
 
                 if epoch_step % (log_step * config.subdivisions) == 0:
-                    writer.add_scalar('Loss/train', loss.item(), global_step)
-                    writer.add_scalar('loss_xy/train', loss_xy.item(), global_step)
-                    writer.add_scalar('loss_wh/train', loss_wh.item(), global_step)
-                    writer.add_scalar('loss_obj/train', loss_obj.item(), global_step)
-                    writer.add_scalar('loss_cls/train', loss_cls.item(), global_step)
-                    writer.add_scalar('loss_l2/train', loss_l2.item(), global_step)
+                    writer.add_scalar('train/Loss', loss.item(), global_step)
+                    writer.add_scalar('train/loss_xy', loss_xy.item(), global_step)
+                    writer.add_scalar('train/loss_wh', loss_wh.item(), global_step)
+                    writer.add_scalar('train/loss_obj', loss_obj.item(), global_step)
+                    writer.add_scalar('train/loss_cls', loss_cls.item(), global_step)
+                    writer.add_scalar('train/loss_l2', loss_l2.item(), global_step)
                     writer.add_scalar('lr', scheduler.get_lr()[0] * config.batch, global_step)
                     pbar.set_postfix(**{'loss (batch)': loss.item(), 'loss_xy': loss_xy.item(),
                                         'loss_wh': loss_wh.item(),
@@ -365,14 +366,15 @@ def get_args(**kwargs):
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # parser.add_argument('-b', '--batch-size', metavar='B', type=int, nargs='?', default=2,
     #                     help='Batch size', dest='batchsize')
-    parser.add_argument('-l', '--learning-rate', metavar='LR', type=float, nargs='?', default=0.1,
-                        help='Learning rate', dest='lr')
+    parser.add_argument('-l', '--learning-rate', metavar='LR', type=float, nargs='?', default=0.001,
+                        help='Learning rate', dest='learning_rate')
     parser.add_argument('-f', '--load', dest='load', type=str, default=None,
                         help='Load model from a .pth file')
     parser.add_argument('-g', '--gpu', metavar='G', type=str, default='-1',
                         help='GPU', dest='gpu')
     parser.add_argument('-dir', '--data-dir', type=str, default=None,
                         help='dataset dir', dest='dataset_dir')
+    parser.add_argument('-pretrained',type=str,default=None,help='pretrained yolov4.conv.137')
     args = vars(parser.parse_args())
 
     for k in args.keys():
@@ -423,11 +425,10 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    model = Yolov4()
+    model = Yolov4(cfg.pretrained)
 
     if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
-    # model = model.cuda()
     model.to(device=device)
 
     try:

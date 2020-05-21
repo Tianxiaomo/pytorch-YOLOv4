@@ -80,20 +80,6 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 python demo.py <cfgFile> <weightFile> <imgFile>
 ```
 
-Reference:
-- https://github.com/eriklindernoren/PyTorch-YOLOv3
-- https://github.com/marvis/pytorch-caffe-darknet-convert
-- https://github.com/marvis/pytorch-yolo3
-
-```
-@article{yolov4,
-  title={YOLOv4: YOLOv4: Optimal Speed and Accuracy of Object Detection},
-  author={Alexey Bochkovskiy, Chien-Yao Wang, Hong-Yuan Mark Liao},
-  journal = {arXiv},
-  year={2020}
-}
-```
-
 # 3.Conversion to ONNX
 
 - **Run python script to generate onnx model from darknet**
@@ -120,3 +106,17 @@ Reference:
     This demo only support batch_size == 1.
 
     You have to update the batch dimension of inputs/outputs for other batch sizes.
+
+Reference:
+- https://github.com/eriklindernoren/PyTorch-YOLOv3
+- https://github.com/marvis/pytorch-caffe-darknet-convert
+- https://github.com/marvis/pytorch-yolo3
+
+```
+@article{yolov4,
+  title={YOLOv4: YOLOv4: Optimal Speed and Accuracy of Object Detection},
+  author={Alexey Bochkovskiy, Chien-Yao Wang, Hong-Yuan Mark Liao},
+  journal = {arXiv},
+  year={2020}
+}
+```
