@@ -3,7 +3,7 @@ import torch
 from tool.darknet2pytorch import Darknet
 
 
-def fransform_to_onnx(cfgfile, weightfile, batch_size = 1):
+def fransform_to_onnx(cfgfile, weightfile, batch_size=1):
     model = Darknet(cfgfile)
 
     model.print_network()
@@ -12,22 +12,20 @@ def fransform_to_onnx(cfgfile, weightfile, batch_size = 1):
 
     # model.cuda()
 
-    x = torch.randn((batch_size, 3, model.height, model.width), requires_grad=True) #.cuda()
+    x = torch.randn((batch_size, 3, model.height, model.width), requires_grad=True)  # .cuda()
 
     # Export the model
     print('Export the onnx model ...')
-    torch.onnx.export(model,                   
-                    x,       
-                    "yolov4_{}_3_{}_{}.onnx".format(batch_size, model.height, model.width),
-                    export_params=True,
-                    opset_version=11,
-                    do_constant_folding=True,
-                    input_names=['input'], output_names=['output_1', 'output_2', 'output_3'],
-                    dynamic_axes=None)
+    torch.onnx.export(model,
+                      x,
+                      "yolov4_{}_3_{}_{}.onnx".format(batch_size, model.height, model.width),
+                      export_params=True,
+                      opset_version=11,
+                      do_constant_folding=True,
+                      input_names=['input'], output_names=['output_1', 'output_2', 'output_3'],
+                      dynamic_axes=None)
 
     print('Onnx model exporting done')
-
-
 
 
 if __name__ == '__main__':
@@ -45,5 +43,3 @@ if __name__ == '__main__':
         print('  python darknet2onnx.py <cfgFile> <weightFile>')
         print('or')
         print('  python darknet2onnx.py <cfgFile> <weightFile> <batchSize>')
-        
-
