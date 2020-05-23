@@ -421,7 +421,7 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
 
     list_features_numpy = []
     for feature in list_features:
-        list_features_numpy.append(feature.data.numpy())
+        list_features_numpy.append(feature.data.cpu().numpy())
 
     return post_processing(img, nms_thresh, list_features_numpy)
 
