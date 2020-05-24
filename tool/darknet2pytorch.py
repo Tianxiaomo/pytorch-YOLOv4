@@ -236,7 +236,14 @@ class Darknet(nn.Module):
             elif block['type'] == 'maxpool':
                 pool_size = int(block['size'])
                 stride = int(block['stride'])
-                model = nn.MaxPool2d(kernel_size=pool_size, stride=stride, padding=pool_size//2)
+                # model = nn.MaxPool2d(kernel_size=pool_size, stride=stride, padding=pool_size//2)
+                padding = 0
+                if 'pad' in block.keys() and int(block['pad']) == 1:
+                    padding = int((pool_size - 1) / 2)
+                if stride > 1:
+                    model = nn.MaxPool2d(pool_size, stride, padding=padding)
+                else:
+                    model = MaxPoolStride1()
                 out_filters.append(prev_filters)
                 prev_stride = stride * prev_stride
                 out_strides.append(prev_stride)
