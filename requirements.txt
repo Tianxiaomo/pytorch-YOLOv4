@@ -8,3 +8,4 @@ easydict==1.9
 Pillow==7.1.2
 skimage
 opencv_python
+pycocotools
