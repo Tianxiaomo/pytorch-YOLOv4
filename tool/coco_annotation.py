@@ -13,18 +13,25 @@
 import json
 from collections import defaultdict
 from tqdm import tqdm
+import os
 
+"""hyper parameters"""
+json_file_path = 'E:/Dataset/coco2017/annotations_trainval2017/annotations/instances_val2017.json'
+images_dir_path = 'mscoco2017/train2017/'
+output_path = '../data/val.txt'
+
+"""load json file"""
 name_box_id = defaultdict(list)
 id_name = dict()
-f = open(
-    "E:/Dataset/coco2017/annotations_trainval2017/annotations/instances_val2017.json",
-    encoding='utf-8')
-data = json.load(f)
+with open(json_file_path, encoding='utf-8') as f:
+    data = json.load(f)
 
+"""generate labels"""
+images = data['images']
 annotations = data['annotations']
 for ant in tqdm(annotations):
     id = ant['image_id']
-    name = 'mscoco2017/train2017/%012d.jpg' % id
+    name = os.path.join(images_dir_path, images[id]['file_name'])
     cat = ant['category_id']
 
     if cat >= 1 and cat <= 11:
@@ -48,18 +55,18 @@ for ant in tqdm(annotations):
 
     name_box_id[name].append([ant['bbox'], cat])
 
-f = open('../data/val.txt', 'w')
-for key in tqdm(name_box_id.keys()):
-    f.write(key)
-    box_infos = name_box_id[key]
-    for info in box_infos:
-        x_min = int(info[0][0])
-        y_min = int(info[0][1])
-        x_max = x_min + int(info[0][2])
-        y_max = y_min + int(info[0][3])
+"""write to txt"""
+with open(output_path, 'w') as f:
+    for key in tqdm(name_box_id.keys()):
+        f.write(key)
+        box_infos = name_box_id[key]
+        for info in box_infos:
+            x_min = int(info[0][0])
+            y_min = int(info[0][1])
+            x_max = x_min + int(info[0][2])
+            y_max = y_min + int(info[0][3])
 
-        box_info = " %d,%d,%d,%d,%d" % (
-            x_min, y_min, x_max, y_max, int(info[1]))
-        f.write(box_info)
-    f.write('\n')
-f.close()
+            box_info = " %d,%d,%d,%d,%d" % (
+                x_min, y_min, x_max, y_max, int(info[1]))
+            f.write(box_info)
+        f.write('\n')
