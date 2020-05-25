@@ -56,6 +56,8 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 # 1.Train
 
+[use yolov4 to train your own data](Use_yolov4_to_train_your_own_data.md)
+
 1. Download weight
 2. Transform data
 
