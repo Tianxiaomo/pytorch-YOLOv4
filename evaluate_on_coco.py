@@ -28,23 +28,23 @@ from tool.utils import do_detect
 
 def convert_cat_id(single_annotation):
     cat = single_annotation['category_id']
-    if cat >= 1 and cat <= 11:
+    if 0 <= cat <= 10:
         cat = cat + 1
-    elif cat >= 13 and cat <= 25:
+    elif 11 <= cat <= 23:
         cat = cat + 2
-    elif cat >= 27 and cat <= 28:
+    elif 24 <= cat <= 25:
         cat = cat + 3
-    elif cat >= 31 and cat <= 44:
+    elif 26 <= cat <= 39:
         cat = cat + 5
-    elif cat >= 46 and cat <= 65:
+    elif 40 <= cat <= 59:
         cat = cat + 6
-    elif cat == 67:
+    elif cat == 60:
         cat = cat + 7
-    elif cat == 70:
+    elif cat == 61:
         cat = cat + 9
-    elif cat >= 72 and cat <= 82:
+    elif 62 <= cat <= 72:
         cat = cat + 10
-    elif cat >= 84 and cat <= 90:
+    elif 73 <= cat <= 79:
         cat = cat + 11
     single_annotation['category_id'] = cat
     return single_annotation
