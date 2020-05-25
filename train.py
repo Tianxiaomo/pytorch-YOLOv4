@@ -276,6 +276,8 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
         Device:          {device.type}
         Images size:     {config.width}
         Optimizer:       {config.TRAIN_OPTIMIZER}
+        Dataset classes: {config.classes}
+        Train label path:{config.train_label}
         Pretrained:
     ''')
 
@@ -294,12 +296,13 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate / config.batch, betas=(0.9, 0.999), eps=1e-08)
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, burnin_schedule)
 
-    criterion = Yolo_loss(device=device, batch=config.batch // config.subdivisions)
+    criterion = Yolo_loss(device=device, batch=config.batch // config.subdivisions,n_classes=config.classes)
     # scheduler = ReduceLROnPlateau(optimizer, mode='max', verbose=True, patience=6, min_lr=1e-7)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, 0.001, 1e-6, 20)
 
+    model.train()
     for epoch in range(epochs):
-        model.train()
+        #model.train()
         epoch_loss = 0
         epoch_step = 0
 
@@ -320,12 +323,12 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
 
                 epoch_loss += loss.item()
 
-                if i % config.subdivisions == 0:
+                if global_step  % config.subdivisions == 0:
                     optimizer.step()
                     scheduler.step()
                     model.zero_grad()
 
-                if epoch_step % (log_step * config.subdivisions) == 0:
+                if global_step % (log_step * config.subdivisions) == 0:
                     writer.add_scalar('train/Loss', loss.item(), global_step)
                     writer.add_scalar('train/loss_xy', loss_xy.item(), global_step)
                     writer.add_scalar('train/loss_wh', loss_wh.item(), global_step)
@@ -376,6 +379,8 @@ def get_args(**kwargs):
     parser.add_argument('-dir', '--data-dir', type=str, default=None,
                         help='dataset dir', dest='dataset_dir')
     parser.add_argument('-pretrained',type=str,default=None,help='pretrained yolov4.conv.137')
+    parser.add_argument('-classes',type=int,default=80,help='dataset classes')
+    parser.add_argument('-train_label_path',dest='train_label',type=str,default='train.txt',help="train label path")
     args = vars(parser.parse_args())
 
     for k in args.keys():
@@ -426,7 +431,7 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    model = Yolov4(cfg.pretrained)
+    model = Yolov4(cfg.pretrained,n_classes=cfg.classes)
 
     if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)
