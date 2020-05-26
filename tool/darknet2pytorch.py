@@ -244,8 +244,8 @@ class Darknet(nn.Module):
                     # [maxpool] stride=1 size=13 
                     model = nn.MaxPool2d(kernel_size=pool_size, stride=stride, padding=pool_size//2)
                 else:
-                    # It is unlikely to go into here
-                    model = nn.MaxPool2d(kernel_size=pool_size, stride=stride)
+                    # yolov3-tiny.cfg has [maxpool] of stride=2 size=2
+                    model = nn.MaxPool2d(kernel_size=pool_size, stride=stride, padding=0)
 
                 # This part of code may have problems, should be discussed later
                 ''' 
