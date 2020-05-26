@@ -6,10 +6,17 @@ import numpy as np
 import cv2
 import onnxruntime
 from tool.utils import *
+from tool.darknet2onnx import *
 
 
-def main(onnx_path, image_path):
-    session = onnxruntime.InferenceSession(onnx_path)
+def main(cfg_file, weight_file, image_path, batch_size):
+
+    # Transform to onnx as specified batch size
+    fransform_to_onnx(cfg_file, weight_file, batch_size)
+    # Transform to onnx for demo
+    onnx_path_demo = fransform_to_onnx(cfg_file, weight_file, 1)
+
+    session = onnxruntime.InferenceSession(onnx_path_demo)
     # session = onnx.load(onnx_path)
     print("The model expects input shape: ", session.get_inputs()[0].shape)
 
@@ -44,9 +51,9 @@ def detect(session, image_src):
 
     # print(outputs[2])
 
-    boxes = post_processing(img_in, 0.4, outputs)
-
     num_classes = 80
+    boxes = post_processing(img_in, 0.5, num_classes, 0.4, outputs)
+
     if num_classes == 20:
         namesfile = 'data/voc.names'
     elif num_classes == 80:
@@ -60,11 +67,13 @@ def detect(session, image_src):
 
 
 if __name__ == '__main__':
-    print("Warning: This demo only supports onnx model whose batchSize == 1")
-    if len(sys.argv) == 3:
-        onnx_path = sys.argv[1]
-        image_path = sys.argv[2]
-        main(onnx_path, image_path)
+    print("Converting to onnx and running demo ...")
+    if len(sys.argv) == 5:
+        cfg_file = sys.argv[1]
+        weight_file = sys.argv[2]
+        image_path = sys.argv[3]
+        batch_size = int(sys.argv[4])
+        main(cfg_file, weight_file, image_path, batch_size)
     else:
-        print('Please execute this demo this way:\n')
-        print('  python demo_onnx.py <onnxFile> <imageFile>')
+        print('Please run this way:\n')
+        print('  python demo_onnx.py <cfgFile> <weightFile> <imageFile> <batchSize>')

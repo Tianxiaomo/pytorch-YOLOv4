@@ -43,7 +43,7 @@ def detect(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.5, num_classes, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
@@ -82,7 +82,7 @@ def detect_imges(cfgfile, weightfile, imgfile_list=['data/dog.jpg', 'data/giraff
     images = np.concatenate(imges, 0)
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, images, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, images, 0.5, num_classes, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
@@ -117,7 +117,7 @@ def detect_cv2(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.5, m.num_classes, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
@@ -158,7 +158,7 @@ def detect_cv2_camera(cfgfile, weightfile):
         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.5, num_classes, 0.4, use_cuda)
         finish = time.time()
         print('Predicted in %f seconds.' % (finish - start))
 
@@ -196,7 +196,7 @@ def detect_skimage(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.5, m.num_classes, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
