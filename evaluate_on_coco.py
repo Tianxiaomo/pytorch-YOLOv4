@@ -13,41 +13,69 @@ import logging
 import os
 import sys
 import time
+from collections import defaultdict
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageDraw
 from easydict import EasyDict as edict
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 from cfg import Cfg
 from tool.darknet2pytorch import Darknet
-from tool.utils import do_detect
+from tool.utils import do_detect, load_class_names
 
 
-def convert_cat_id(single_annotation):
-    cat = single_annotation['category_id']
+def get_class_name(cat):
+    class_names = load_class_names("./data/coco.names")
     if cat >= 1 and cat <= 11:
-        cat = cat + 1
+        cat = cat - 1
     elif cat >= 13 and cat <= 25:
-        cat = cat + 2
+        cat = cat - 2
     elif cat >= 27 and cat <= 28:
-        cat = cat + 3
+        cat = cat - 3
     elif cat >= 31 and cat <= 44:
-        cat = cat + 5
+        cat = cat - 5
     elif cat >= 46 and cat <= 65:
-        cat = cat + 6
+        cat = cat - 6
     elif cat == 67:
-        cat = cat + 7
+        cat = cat - 7
     elif cat == 70:
-        cat = cat + 9
+        cat = cat - 9
     elif cat >= 72 and cat <= 82:
-        cat = cat + 10
+        cat = cat - 10
     elif cat >= 84 and cat <= 90:
+        cat = cat - 11
+    return class_names[cat]
+
+def convert_cat_id_and_reorientate_bbox(single_annotation):
+    cat = single_annotation['category_id']
+    bbox = single_annotation['bbox']
+    x, y, w, h = bbox
+    x1, y1, x2, y2 = x - w / 2, y - h / 2, x + w / 2, y + h / 2
+    if 0 <= cat <= 10:
+        cat = cat + 1
+    elif 11 <= cat <= 23:
+        cat = cat + 2
+    elif 24 <= cat <= 25:
+        cat = cat + 3
+    elif 26 <= cat <= 39:
+        cat = cat + 5
+    elif 40 <= cat <= 59:
+        cat = cat + 6
+    elif cat == 60:
+        cat = cat + 7
+    elif cat == 61:
+        cat = cat + 9
+    elif 62 <= cat <= 72:
+        cat = cat + 10
+    elif 73 <= cat <= 79:
         cat = cat + 11
     single_annotation['category_id'] = cat
+    single_annotation['bbox'] = [x1, y1, w, h]
     return single_annotation
+
 
 
 def myconverter(obj):
@@ -62,19 +90,64 @@ def myconverter(obj):
     else:
         return obj
 
-
 def evaluate_on_coco(cfg, resFile):
     annType = "bbox"  # specify type here
     with open(resFile, 'r') as f:
         unsorted_annotations = json.load(f)
     sorted_annotations = list(sorted(unsorted_annotations, key=lambda single_annotation: single_annotation["image_id"]))
-    sorted_annotations = list(map(convert_cat_id, sorted_annotations))
+    sorted_annotations = list(map(convert_cat_id_and_reorientate_bbox, sorted_annotations))
+    reshaped_annotations = defaultdict(list)
+    for annotation in sorted_annotations:
+        reshaped_annotations[annotation['image_id']].append(annotation)
 
     with open('temp.json', 'w') as f:
         json.dump(sorted_annotations, f)
 
     cocoGt = COCO(cfg.gt_annotations_path)
     cocoDt = cocoGt.loadRes('temp.json')
+
+    with open(cfg.gt_annotations_path, 'r') as f:
+        gt_annotation_raw = json.load(f)
+        gt_annotation_raw_images = gt_annotation_raw["images"]
+        gt_annotation_raw_labels = gt_annotation_raw["annotations"]
+
+    rgb_label = (255, 0, 0)
+    rgb_pred = (0, 255, 0)
+
+    for i, image_id in enumerate(reshaped_annotations):
+        image_annotations = reshaped_annotations[image_id]
+        gt_annotation_image_raw = list(filter(
+            lambda image_json: image_json['id'] == image_id, gt_annotation_raw_images
+        ))
+        gt_annotation_labels_raw = list(filter(
+            lambda label_json: label_json['image_id'] == image_id, gt_annotation_raw_labels
+        ))
+        if len(gt_annotation_image_raw) == 1:
+            image_path = os.path.join(cfg.dataset_dir, gt_annotation_image_raw[0]["file_name"])
+            actual_image = Image.open(image_path).convert('RGB')
+            draw = ImageDraw.Draw(actual_image)
+
+            for annotation in image_annotations:
+                x1_pred, y1_pred, w, h = annotation['bbox']
+                x2_pred, y2_pred = x1_pred + w, y1_pred + h
+                cls_id = annotation['category_id']
+                label = get_class_name(cls_id)
+                draw.text((x1_pred, y1_pred), label, fill=rgb_pred)
+                draw.rectangle([x1_pred, y1_pred, x2_pred, y2_pred], outline=rgb_pred)
+            for annotation in gt_annotation_labels_raw:
+                x1_truth, y1_truth, w, h = annotation['bbox']
+                x2_truth, y2_truth = x1_truth + w, y1_truth + h
+                cls_id = annotation['category_id']
+                label = get_class_name(cls_id)
+                draw.text((x1_truth, y1_truth), label, fill=rgb_label)
+                draw.rectangle([x1_truth, y1_truth, x2_truth, y2_truth], outline=rgb_label)
+            actual_image.save("./data/outcome/predictions_{}".format(gt_annotation_image_raw[0]["file_name"]))
+        else:
+            print('please check')
+            break
+        if (i + 1) % 100 == 0: # just see first 100
+            break
+
     imgIds = sorted(cocoGt.getImgIds())
     cocoEval = COCOeval(cocoGt, cocoDt, annType)
     cocoEval.params.imgIds = imgIds
@@ -88,7 +161,7 @@ def test(model, annotations, cfg):
         print("Annotations do not have 'images' key")
         return
     images = annotations["images"]
-    images = images[:10]
+    # images = images[:10]
     resFile = 'data/coco_val_outputs.json'
 
     if torch.cuda.is_available():
@@ -98,7 +171,7 @@ def test(model, annotations, cfg):
 
     # do one forward pass first to circumvent cold start
     throwaway_image = Image.open('data/dog.jpg').convert('RGB').resize((model.width, model.height))
-    do_detect(model, throwaway_image, 0.5, 0.4, use_cuda)
+    do_detect(model, throwaway_image, 0.5, 80, 0.4, use_cuda)
     boxes_json = []
 
     for i, image_annotation in enumerate(images):
@@ -116,7 +189,7 @@ def test(model, annotations, cfg):
             model.cuda()
 
         start = time.time()
-        boxes = do_detect(model, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(model, sized, 0.0, 80, 0.4, use_cuda)
         finish = time.time()
         if type(boxes) == list:
             for box in boxes:
