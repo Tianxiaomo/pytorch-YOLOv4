@@ -189,7 +189,7 @@ def test(model, annotations, cfg):
             model.cuda()
 
         start = time.time()
-        boxes = do_detect(model, sized, 0.1, 80, 0.1, use_cuda)
+        boxes = do_detect(model, sized, 0.0, 80, 0.4, use_cuda)
         finish = time.time()
         if type(boxes) == list:
             for box in boxes:
