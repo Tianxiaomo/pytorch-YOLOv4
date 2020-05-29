@@ -14,11 +14,13 @@ def fransform_to_onnx(cfgfile, weightfile, batch_size=1):
 
     x = torch.randn((batch_size, 3, model.height, model.width), requires_grad=True)  # .cuda()
 
+    onnx_file_name = "yolov4_{}_3_{}_{}.onnx".format(batch_size, model.height, model.width)
+
     # Export the model
     print('Export the onnx model ...')
     torch.onnx.export(model,
                       x,
-                      "yolov4_{}_3_{}_{}.onnx".format(batch_size, model.height, model.width),
+                      onnx_file_name,
                       export_params=True,
                       opset_version=11,
                       do_constant_folding=True,
@@ -26,6 +28,7 @@ def fransform_to_onnx(cfgfile, weightfile, batch_size=1):
                       dynamic_axes=None)
 
     print('Onnx model exporting done')
+    return onnx_file_name
 
 
 if __name__ == '__main__':

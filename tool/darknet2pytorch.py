@@ -15,20 +15,36 @@ class Mish(torch.nn.Module):
         return x
 
 
-class MaxPoolStride1(nn.Module):
-    def __init__(self, size=2):
-        super(MaxPoolStride1, self).__init__()
+class MaxPoolDark(nn.Module):
+    def __init__(self, size=2, stride=1):
+        super(MaxPoolDark, self).__init__()
         self.size = size
-        if (self.size - 1) % 2 == 0:
-            self.padding1 = (self.size - 1) // 2
-            self.padding2 = self.padding1
-        else:
-            self.padding1 = (self.size - 1) // 2
-            self.padding2 = self.padding1 + 1
+        self.stride = stride
 
     def forward(self, x):
-        x = F.max_pool2d(F.pad(x, (self.padding1, self.padding2, self.padding1, self.padding2), mode='replicate'),
-                         self.size, stride=1)
+        '''
+        darknet output_size = (input_size + p - k) / s +1
+        p : padding = k - 1
+        k : size
+        s : stride
+        torch output_size = (input_size + 2*p -k) / s +1
+        p : padding = k//2
+        '''
+        p = self.size // 2
+        if ((x.shape[2] - 1) // self.stride) != ((x.shape[2] + 2 * p - self.size) // self.stride):
+            padding1 = (self.size - 1) // 2
+            padding2 = padding1 + 1
+        else:
+            padding1 = (self.size - 1) // 2
+            padding2 = padding1
+        if ((x.shape[3] - 1) // self.stride) != ((x.shape[3] + 2 * p - self.size) // self.stride):
+            padding3 = (self.size - 1) // 2
+            padding4 = padding3 + 1
+        else:
+            padding3 = (self.size - 1) // 2
+            padding4 = padding3
+        x = F.max_pool2d(F.pad(x, (padding3, padding4, padding1, padding2), mode='replicate'),
+                         self.size, stride=self.stride)
         return x
 
 
@@ -236,14 +252,11 @@ class Darknet(nn.Module):
             elif block['type'] == 'maxpool':
                 pool_size = int(block['size'])
                 stride = int(block['stride'])
-                # model = nn.MaxPool2d(kernel_size=pool_size, stride=stride, padding=pool_size//2)
-                padding = 0
-                if 'pad' in block.keys() and int(block['pad']) == 1:
-                    padding = int((pool_size - 1) / 2)
-                if stride > 1:
-                    model = nn.MaxPool2d(pool_size, stride, padding=padding)
+                if stride == 1 and pool_size % 2:
+                    # You can use Maxpooldark instead, here is convenient to convert onnx.
+                    model = nn.MaxPool2d(kernel_size=pool_size, stride=stride, padding=pool_size // 2)
                 else:
-                    model = MaxPoolStride1()
+                    model = MaxPoolDark(pool_size, stride)
                 out_filters.append(prev_filters)
                 prev_stride = stride * prev_stride
                 out_strides.append(prev_stride)

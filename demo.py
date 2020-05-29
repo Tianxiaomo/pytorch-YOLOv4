@@ -8,7 +8,6 @@
     @Author    :
     @Time      :
     @Detail    :
-
 '''
 
 # import sys
@@ -17,6 +16,17 @@
 # from models.tiny_yolo import TinyYoloNet
 from tool.utils import *
 from tool.darknet2pytorch import Darknet
+import argparse
+
+"""hyper parameters"""
+use_cuda = True
+num_classes = 80
+if num_classes == 20:
+    namesfile = 'data/voc.names'
+elif num_classes == 80:
+    namesfile = 'data/coco.names'
+else:
+    namesfile = 'data/x.names'
 
 
 def detect(cfgfile, weightfile, imgfile):
@@ -26,15 +36,6 @@ def detect(cfgfile, weightfile, imgfile):
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
-    num_classes = 80
-    if num_classes == 20:
-        namesfile = 'data/voc.names'
-    elif num_classes == 80:
-        namesfile = 'data/coco.names'
-    else:
-        namesfile = 'data/names'
-
-    use_cuda = 0
     if use_cuda:
         m.cuda()
 
@@ -43,7 +44,7 @@ def detect(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.5, num_classes, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
@@ -59,15 +60,6 @@ def detect_imges(cfgfile, weightfile, imgfile_list=['data/dog.jpg', 'data/giraff
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
-    num_classes = 80
-    if num_classes == 20:
-        namesfile = 'data/voc.names'
-    elif num_classes == 80:
-        namesfile = 'data/coco.names'
-    else:
-        namesfile = 'data/names'
-
-    use_cuda = 0
     if use_cuda:
         m.cuda()
 
@@ -82,7 +74,7 @@ def detect_imges(cfgfile, weightfile, imgfile_list=['data/dog.jpg', 'data/giraff
     images = np.concatenate(imges, 0)
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, images, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, images, 0.5, num_classes, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
@@ -100,14 +92,6 @@ def detect_cv2(cfgfile, weightfile, imgfile):
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
-    if m.num_classes == 20:
-        namesfile = 'data/voc.names'
-    elif m.num_classes == 80:
-        namesfile = 'data/coco.names'
-    else:
-        namesfile = 'data/names'
-
-    use_cuda = 1
     if use_cuda:
         m.cuda()
 
@@ -117,7 +101,7 @@ def detect_cv2(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.5, m.num_classes, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
@@ -134,15 +118,6 @@ def detect_cv2_camera(cfgfile, weightfile):
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
-    num_classes = 80
-    if num_classes == 20:
-        namesfile = 'data/voc.names'
-    elif num_classes == 80:
-        namesfile = 'data/coco.names'
-    else:
-        namesfile = 'data/names'
-
-    use_cuda = 1
     if use_cuda:
         m.cuda()
 
@@ -158,7 +133,7 @@ def detect_cv2_camera(cfgfile, weightfile):
         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.5, num_classes, 0.4, use_cuda)
         finish = time.time()
         print('Predicted in %f seconds.' % (finish - start))
 
@@ -180,14 +155,6 @@ def detect_skimage(cfgfile, weightfile, imgfile):
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
-    if m.num_classes == 20:
-        namesfile = 'data/voc.names'
-    elif m.num_classes == 80:
-        namesfile = 'data/coco.names'
-    else:
-        namesfile = 'data/names'
-
-    use_cuda = 1
     if use_cuda:
         m.cuda()
 
@@ -196,7 +163,7 @@ def detect_skimage(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.5, m.num_classes, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
@@ -205,20 +172,27 @@ def detect_skimage(cfgfile, weightfile, imgfile):
     plot_boxes_cv2(img, boxes, savename='predictions.jpg', class_names=class_names)
 
 
+def get_args():
+    parser = argparse.ArgumentParser('Test your image or video by trained model.')
+    parser.add_argument('-cfgfile', type=str, default='./cfg/yolov4.cfg',
+                        help='path of cfg file', dest='cfgfile')
+    parser.add_argument('-weightfile', type=str,
+                        default='./checkpoints/Yolov4_epoch1.pth',
+                        help='path of trained model.', dest='weightfile')
+    parser.add_argument('-imgfile', type=str,
+                        default='./data/mscoco2017/train2017/190109_180343_00154162.jpg',
+                        help='path of your image file.', dest='imgfile')
+    args = parser.parse_args()
+
+    return args
+
+
 if __name__ == '__main__':
-    if len(sys.argv) == 4:
-        cfgfile = sys.argv[1]
-        weightfile = sys.argv[2]
-        imgfile = sys.argv[3]
-        detect(cfgfile, weightfile,imgfile)
-        # detect_imges(cfgfile, weightfile)
-        # detect_cv2(cfgfile, weightfile, imgfile)
-        # detect_skimage(cfgfile, weightfile, imgfile)
-    elif len(sys.argv) == 3:
-        cfgfile = sys.argv[1]
-        weightfile = sys.argv[2]
-        detect_cv2_camera(cfgfile, weightfile)
+    args = get_args()
+    if args.imgfile:
+        detect(args.cfgfile, args.weightfile, args.imgfile)
+        # detect_imges(args.cfgfile, args.weightfile)
+        # detect_cv2(args.cfgfile, args.weightfile, args.imgfile)
+        # detect_skimage(args.cfgfile, args.weightfile, args.imgfile)
     else:
-        print('Usage: ')
-        print('  python demo.py cfgfile weightfile imgfile')
-        # detect('cfg/tiny-yolo-voc.cfg', 'tiny-yolo-voc.weights', 'data/person.jpg', version=1)
+        detect_cv2_camera(args.cfgfile, args.weightfile)
