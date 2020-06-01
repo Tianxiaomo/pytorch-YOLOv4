@@ -48,9 +48,9 @@ class MaxPoolDark(nn.Module):
         return x
 
 
-class Upsample(nn.Module):
+class Upsample_expand(nn.Module):
     def __init__(self, stride=2):
-        super(Upsample, self).__init__()
+        super(Upsample_expand, self).__init__()
         self.stride = stride
 
     def forward(self, x):
@@ -64,6 +64,24 @@ class Upsample(nn.Module):
         hs = stride
         x = x.view(B, C, H, 1, W, 1).expand(B, C, H, stride, W, stride).contiguous().view(B, C, H * stride, W * stride)
         return x
+
+
+class Upsample_interpolate(nn.Module):
+    def __init__(self, stride):
+        super(Upsample_interpolate, self).__init__()
+        self.stride = stride
+
+    def forward(self, x):
+
+        x_numpy = x.cpu().detach().numpy()
+        H = x_numpy.shape[2]
+        W = x_numpy.shape[3]
+
+        H = H * self.stride
+        W = W * self.stride
+
+        out = F.interpolate(x, size=(H, W), mode='nearest')
+        return out
 
 
 class Reorg(nn.Module):
@@ -116,12 +134,13 @@ class EmptyModule(nn.Module):
 class Darknet(nn.Module):
     def __init__(self, cfgfile):
         super(Darknet, self).__init__()
-        self.blocks = parse_cfg(cfgfile)
-        self.models = self.create_network(self.blocks)  # merge conv, bn,leaky
-        self.loss = self.models[len(self.models) - 1]
 
+        self.blocks = parse_cfg(cfgfile)
         self.width = int(self.blocks[0]['width'])
         self.height = int(self.blocks[0]['height'])
+        
+        self.models = self.create_network(self.blocks)  # merge conv, bn,leaky
+        self.loss = self.models[len(self.models) - 1]
 
         if self.blocks[(len(self.blocks) - 1)]['type'] == 'region':
             self.anchors = self.loss.anchors
@@ -254,7 +273,12 @@ class Darknet(nn.Module):
                 stride = int(block['stride'])
                 if stride == 1 and pool_size % 2:
                     # You can use Maxpooldark instead, here is convenient to convert onnx.
+                    # Example: [maxpool] size=3 stride=1
                     model = nn.MaxPool2d(kernel_size=pool_size, stride=stride, padding=pool_size // 2)
+                elif stride == pool_size:
+                    # You can use Maxpooldark instead, here is convenient to convert onnx.
+                    # Example: [maxpool] size=2 stride=2
+                    model = nn.MaxPool2d(kernel_size=pool_size, stride=stride, padding=0)
                 else:
                     model = MaxPoolDark(pool_size, stride)
                 out_filters.append(prev_filters)
@@ -292,8 +316,10 @@ class Darknet(nn.Module):
                 out_filters.append(prev_filters)
                 prev_stride = prev_stride // stride
                 out_strides.append(prev_stride)
-                # models.append(nn.Upsample(scale_factor=stride, mode='nearest'))
-                models.append(Upsample(stride))
+
+                models.append(Upsample_expand(stride))
+                # models.append(Upsample_interpolate(stride))
+
             elif block['type'] == 'route':
                 layers = block['layers'].split(',')
                 ind = len(models)

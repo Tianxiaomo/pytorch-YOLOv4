@@ -2,6 +2,7 @@ ttest
 *.weights
 *.pth
 *.onnx
+*.engine
 
 __pycache__
 .idea

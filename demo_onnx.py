@@ -45,6 +45,7 @@ def detect(session, image_src):
 
     outputs = session.run(None, {input_name: img_in})
 
+    print(len(outputs))
     print(outputs[0].shape)
     print(outputs[1].shape)
     print(outputs[2].shape)
