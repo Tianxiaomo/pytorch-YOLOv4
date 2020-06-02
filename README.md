@@ -38,7 +38,7 @@ A minimal PyTorch implementation of YOLOv4.
 
 ![image](https://user-gold-cdn.xitu.io/2020/4/26/171b5a6c8b3bd513?w=768&h=576&f=jpeg&s=78882)
 
-# 0.Weight
+# 0. Weight
 
 ## 0.1 darkent
 - baidu(https://pan.baidu.com/s/1dAGEW8cm-dqK14TbhhVetA     Extraction code:dm5b)
@@ -54,7 +54,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     - yolov4.pth(https://drive.google.com/open?id=1wv_LiFeCRYwtpkqREPeI13-gPELBDwuJ)
     - yolov4.conv.137.pth(https://drive.google.com/open?id=1fcbR0bWzYfIEdLJPzOsn4R5mlvR6IQyA)
 
-# 1.Train
+# 1. Train
 
 [use yolov4 to train your own data](Use_yolov4_to_train_your_own_data.md)
 
@@ -76,13 +76,15 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
      python train.py -g [GPU_ID] -dir [Dataset direction] ...
     ```
 
-# 2.Inference
+# 2. Inference
 - download model weight https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT
 ```
 python demo.py <cfgFile> <weightFile> <imgFile>
 ```
 
-# 3.Darknet2ONNX
+# 3. Darknet2ONNX (Evolving)
+
+- **Pytorch version Recommended: 1.4.0**
 
 - **Install onnxruntime**
 
@@ -101,8 +103,27 @@ python demo.py <cfgFile> <weightFile> <imgFile>
   - One is for running the demo (batch_size=1)
   - The other one is what you want to generate (batch_size=batchSize)
 
+# 4. ONNX2TensorRT (Evolving)
 
-# 4.ONNX2Tensorflow
+- **TensorRT version Recommended: 7.0, 7.1**
+
+- **Run the following command to convert VOLOv4 onnx model into TensorRT engine**
+
+    ```sh
+    trtexec --onnx=<onnx_file> --explicitBatch --saveEngine=<tensorRT_engine_file> --workspace=<size_in_megabytes> --fp16
+    ```
+    - Note: If you want to use int8 mode in conversion, extra int8 calibration is needed.
+
+- **Run the demo (this demo here only works when batchSize=1)**
+
+    ```sh
+    python demo_trt.py <tensorRT_engine_file> <input_image> <input_H> <input_W>
+    ```
+    - Note1: input_H and input_W should agree with the input size in the original darknet cfg file as well as the latter onnx file.
+    - Note2: extra NMS operations are need for the tensorRT ouput. This demo depends on TianXiaomo's NMS code from `tool/utils.py`.
+
+
+# 5. ONNX2Tensorflow
 
 - **First:Conversion to ONNX**
 

@@ -106,7 +106,7 @@ class YoloLayer(nn.Module):
     model_out: while inference,is post-processing inside or outside the model
         true:outside
     '''
-    def __init__(self, anchor_mask=[], num_classes=0, anchors=[], num_anchors=1, stride=32, model_out=True):
+    def __init__(self, anchor_mask=[], num_classes=0, anchors=[], num_anchors=1, stride=32, model_out=False):
         super(YoloLayer, self).__init__()
         self.anchor_mask = anchor_mask
         self.num_classes = num_classes

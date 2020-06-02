@@ -158,6 +158,7 @@ def yolo_foward(output, conf_thresh, num_classes, anchors, num_anchors, only_obj
         list_of_slices[begin + 5] = torch.nn.Softmax(dim=1)(list_of_slices[begin + 5])
 
     # Prepare C-x, C-y, P-w, P-h (None of them are torch related)
+    batch = output.size(0)
     H = output.size(2)
     W = output.size(3)
     grid_x = np.expand_dims(np.expand_dims(np.expand_dims(np.linspace(0, W - 1, W), axis=0).repeat(H, 0), axis=0), axis=0)
@@ -184,112 +185,102 @@ def yolo_foward(output, conf_thresh, num_classes, anchors, num_anchors, only_obj
         list_of_slices[begin + 2] *= anchor_w[i]
         list_of_slices[begin + 3] *= anchor_h[i]
 
-    return  list_of_slices
+
+    ########################################
+    #   Figure out bboxes from slices     #
+    ########################################
+
+    xmin_list = []
+    ymin_list = []
+    xmax_list = []
+    ymax_list = []
+
+    det_confs_list = []
+    cls_confs_list = []
+
+    for i in range(num_anchors):
+        begin = i * (5 + 1)
+
+        xmin_list.append(list_of_slices[begin])
+        ymin_list.append(list_of_slices[begin + 1])
+        xmax_list.append(list_of_slices[begin] + list_of_slices[begin + 2])
+        ymax_list.append(list_of_slices[begin + 1] + list_of_slices[begin + 3])
+
+        # Shape: [batch, 1, H, W]
+        det_confs = list_of_slices[begin + 4]
+
+        # Shape: [batch, num_classes, H, W]
+        cls_confs = list_of_slices[begin + 5]
+
+        det_confs_list.append(det_confs)
+        cls_confs_list.append(cls_confs)
+    
+    # Shape: [batch, num_anchors, H, W]
+    xmin = torch.cat(xmin_list, dim=1)
+    ymin = torch.cat(ymin_list, dim=1)
+    xmax = torch.cat(xmax_list, dim=1)
+    ymax = torch.cat(ymax_list, dim=1)
+
+    # normalize coordinates to [0, 1]
+    xmin = xmin / W
+    ymin = ymin / H
+    xmax = xmax / W
+    ymax = ymax / H
+
+    # Shape: [batch, num_anchors * H * W] 
+    det_confs = torch.cat(det_confs_list, dim=1).view(batch, num_anchors * H * W)
+
+    # Shape: [batch, num_anchors, num_classes, H * W] 
+    cls_confs = torch.cat(cls_confs_list, dim=1).view(batch, num_anchors, num_classes, H * W)
+    # Shape: [batch, num_anchors * H * W, num_classes] 
+    cls_confs = cls_confs.permute(0, 1, 3, 2).reshape(batch, num_anchors * H * W, num_classes)
+
+    # Shape: [batch, num_anchors * H * W, 1]
+    xmin = xmin.view(batch, num_anchors * H * W, 1)
+    ymin = ymin.view(batch, num_anchors * H * W, 1)
+    xmax = xmax.view(batch, num_anchors * H * W, 1)
+    ymax = ymax.view(batch, num_anchors * H * W, 1)
+
+    # Shape: [batch, num_anchors * h * w, 4]
+    boxes = torch.cat((xmin, ymin, xmax, ymax), dim=2)
+
+    # Shape: [batch, num_anchors * h * w, num_classes, 4]
+    # boxes = boxes.view(N, num_anchors * H * W, 1, 4).expand(N, num_anchors * H * W, num_classes, 4)
+    
+
+    return  boxes, cls_confs, det_confs
 
 
 
 
-def get_region_boxes(list_of_slices, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1,
-                              validation=False):
+def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
     
     ########################################
     #   Figure out bboxes from slices     #
     ########################################
 
-    xs_list = []
-    ys_list = []
-    ws_list = []
-    hs_list = []
-
-    det_confs_list = []
-    cls_confs_list = []
-    cls_max_confs_list = []
-    cls_max_ids_list = []
-
-
-    for i in range(num_anchors):
-        begin = i * (5 + 1)
-
-        if type(list_of_slices[begin]) is torch.Tensor:
-            xs_list.append(list_of_slices[begin].cpu().detach().numpy())
-            ys_list.append(list_of_slices[begin + 1].cpu().detach().numpy())
-            ws_list.append(list_of_slices[begin + 2].cpu().detach().numpy())
-            hs_list.append(list_of_slices[begin + 3].cpu().detach().numpy())
-
-            det_confs_list.append(list_of_slices[begin + 4].cpu().detach().numpy())
-            cls_confs_list.append(list_of_slices[begin + 5].cpu().detach().numpy())
-        else:
-            xs_list.append(list_of_slices[begin])
-            ys_list.append(list_of_slices[begin + 1])
-            ws_list.append(list_of_slices[begin + 2])
-            hs_list.append(list_of_slices[begin + 3])
-
-            det_confs_list.append(list_of_slices[begin + 4])
-            cls_confs_list.append(list_of_slices[begin + 5])
-             
-
-        cls_max_confs_list.append(np.expand_dims(np.max(cls_confs_list[-1], axis=1), axis=1))
-        cls_max_ids_list.append(np.expand_dims(np.argmax(cls_confs_list[-1], axis=1), axis=1))
-
-    # Shape: [batch, num_anchors, h, w]
-    xs = np.concatenate(xs_list, axis=1)
-    ys = np.concatenate(ys_list, axis=1)
-    ws = np.concatenate(ws_list, axis=1)
-    hs = np.concatenate(hs_list, axis=1) 
-    # Shape: [batch, num_anchors, h, w]
-    det_confs = np.concatenate(det_confs_list, axis=1)
-    # Shape: [batch, num_anchors * num_classes, h, w]
-    cls_confs = np.concatenate(cls_confs_list, axis=1)
-    # Shape: [batch, num_anchors, h, w]
-    cls_max_confs = np.concatenate(cls_max_confs_list, axis=1)
-    cls_max_ids = np.concatenate(cls_max_ids_list, axis=1)
-
-    batch = det_confs.shape[0]
-    h = det_confs.shape[2]
-    w = det_confs.shape[3]
-
-    sz_hw = h * w
-    sz_hwa = h * w * num_anchors
-
-    # Flatten arrays here
-    xs = xs.flatten()
-    ys = ys.flatten()
-    ws = ws.flatten()
-    hs = hs.flatten()
-    det_confs = det_confs.flatten()
-    cls_max_confs = cls_max_confs.flatten()
-    cls_max_ids = cls_max_ids.flatten()
+    # boxes = np.mean(boxes, axis=2, keepdims=False)
 
     t2 = time.time()
     all_boxes = []
-    for b in range(batch):
-        boxes = []
-        for cy in range(h):
-            for cx in range(w):
-                for i in range(num_anchors):
-                    ind = b * sz_hwa + i * sz_hw + cy * w + cx
-                    det_conf = det_confs[ind]
-                    if only_objectness:
-                        conf = det_confs[ind]
-                    else:
-                        conf = det_confs[ind] * cls_max_confs[ind]
+    for b in range(boxes.shape[0]):
+        l_boxes = []
+        for i in range(boxes.shape[1]):
+            
+            det_conf = det_confs[b, i]
+            max_cls_conf = cls_confs[b, i].max(axis=0)
+            max_cls_id= cls_confs[b, i].argmax(axis=0)
 
-                    if conf > conf_thresh:
-                        bcx = xs[ind]
-                        bcy = ys[ind]
-                        bw = ws[ind]
-                        bh = hs[ind]
-                        cls_max_conf = cls_max_confs[ind]
-                        cls_max_id = cls_max_ids[ind]
-                        box = [bcx / w, bcy / h, bw / w, bh / h, det_conf, cls_max_conf, cls_max_id]
-                        if (not only_objectness) and validation:
-                            for c in range(num_classes):
-                                tmp_conf = cls_confs[ind][c]
-                                if c != cls_max_id and det_confs[ind] * tmp_conf > conf_thresh:
-                                    box.append(tmp_conf)
-                                    box.append(c)
-                        boxes.append(box)
-        all_boxes.append(boxes)
+            if det_conf > conf_thresh:
+                bcx = boxes[b, i, 0]
+                bcy = boxes[b, i, 1]
+                bw = boxes[b, i, 2] - boxes[b, i, 0]
+                bh = boxes[b, i, 3] - boxes[b, i, 1]
+
+                l_box = [bcx, bcy, bw, bh, det_conf, max_cls_conf, max_cls_id]
+
+                l_boxes.append(l_box)
+        all_boxes.append(l_boxes)
     t3 = time.time()
     if False:
         print('---------------------------------')
@@ -610,34 +601,45 @@ def do_detect(model, img, conf_thresh, n_classes, nms_thresh, use_cuda=1):
     img = torch.autograd.Variable(img)
     t2 = time.time()
 
-    list_of_slices = model(img)
+    boxes_and_confs = model(img)
 
-    list_features_numpy = []
-    for feature in list_of_slices:
-        list_features_numpy.append(feature.data.cpu().numpy())
+    # print(boxes_and_confs)
+    output = []
+    
+    for i in range(len(boxes_and_confs)):
+        output.append([])
+        output[-1].append(boxes_and_confs[i][0].cpu().detach().numpy())
+        output[-1].append(boxes_and_confs[i][1].cpu().detach().numpy())
+        output[-1].append(boxes_and_confs[i][2].cpu().detach().numpy())
 
-    return post_processing(img, conf_thresh, n_classes, nms_thresh, list_features_numpy)
+    '''
+    for i in range(len(boxes_and_confs)):
+        output.append(boxes_and_confs[i].cpu().detach().numpy())
+    '''
+
+    return post_processing(img, conf_thresh, n_classes, nms_thresh, output)
 
 
-def post_processing(img, conf_thresh, n_classes, nms_thresh, list_of_slices):
-
-    if len(list_of_slices) == 54:
-        list_of_slices = [list_of_slices[0:18], list_of_slices[18:36], list_of_slices[36:54]]
+def post_processing(img, conf_thresh, n_classes, nms_thresh, output):
 
     anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
     num_anchors = 9
     anchor_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
     strides = [8, 16, 32]
     anchor_step = len(anchors) // num_anchors
-    boxes = []
+
+    boxes = []  
+    
+    for i in range(len(output)):
+        boxes.append(get_region_boxes(output[i][0], output[i][1], output[i][2], conf_thresh))
+    '''
     for i in range(3):
         masked_anchors = []
         for m in anchor_masks[i]:
             masked_anchors += anchors[m * anchor_step:(m + 1) * anchor_step]
         masked_anchors = [anchor / strides[i] for anchor in masked_anchors]
-        boxes.append(get_region_boxes_out_model(list_of_slices[i], conf_thresh, n_classes, masked_anchors,
-                                                len(anchor_masks[i])))
-
+        boxes.append(get_region_boxes_out_model(output[i], conf_thresh, 80, masked_anchors, len(anchor_masks[i])))
+    '''
     if img.shape[0] > 1:
         bboxs_for_imgs = [
             boxes[0][index] + boxes[1][index] + boxes[2][index]
