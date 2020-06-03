@@ -157,19 +157,6 @@ def detect(engine, context, buffers, image_src, image_size):
     trt_outputs[2] = trt_outputs[2].reshape(-1, 255, IN_IMAGE_H // 32, IN_IMAGE_W // 32)
     '''
 
-    print('Shapes supposed to be: ')
-    print(trt_outputs[0].shape)
-    print(trt_outputs[1].shape)
-    print(trt_outputs[2].shape)
-
-    print(trt_outputs[3].shape)
-    print(trt_outputs[4].shape)
-    print(trt_outputs[5].shape)
-
-    print(trt_outputs[6].shape)
-    print(trt_outputs[7].shape)
-    print(trt_outputs[8].shape)
-
     h1 = IN_IMAGE_H // 8
     w1 = IN_IMAGE_W // 8
     h2 = IN_IMAGE_H // 16
@@ -180,25 +167,46 @@ def detect(engine, context, buffers, image_src, image_size):
 
     trt_outputs = [
         [
-            trt_outputs[2].reshape(-1, 3 * h1 * w1, 4),
-            trt_outputs[1].reshape(-1, 3 * h1 * w1, 80),
-            trt_outputs[0].reshape(-1, 3 * h1 * w1)
+            trt_outputs[0],
+            trt_outputs[1],
+            trt_outputs[2]
         ],
         [
-            trt_outputs[5].reshape(-1, 3 * h2 * w2, 4),
-            trt_outputs[4].reshape(-1, 3 * h2 * w2, 80),
-            trt_outputs[3].reshape(-1, 3 * h2 * w2)
+            trt_outputs[3],
+            trt_outputs[4],
+            trt_outputs[5]
         ],
         [
-            trt_outputs[8].reshape(-1, 3 * h3 * w3, 4),
-            trt_outputs[7].reshape(-1, 3 * h3 * w3, 80),
-            trt_outputs[6].reshape(-1, 3 * h3 * w3)
+            trt_outputs[6],
+            trt_outputs[7],
+            trt_outputs[8]
         ]
     ]
 
+    trt_outputs[0].sort(key=len)
+    trt_outputs[1].sort(key=len)
+    trt_outputs[2].sort(key=len)
 
     # print(outputs[2])
     num_classes = 80
+
+    trt_outputs = [
+        [
+            trt_outputs[0][1].reshape(-1, 3 * h1 * w1, 4),
+            trt_outputs[0][2].reshape(-1, 3 * h1 * w1, num_classes),
+            trt_outputs[0][0].reshape(-1, 3 * h1 * w1)
+        ],
+        [
+            trt_outputs[1][1].reshape(-1, 3 * h2 * w2, 4),
+            trt_outputs[1][2].reshape(-1, 3 * h2 * w2, num_classes),
+            trt_outputs[1][0].reshape(-1, 3 * h2 * w2)
+        ],
+        [
+            trt_outputs[2][1].reshape(-1, 3 * h3 * w3, 4),
+            trt_outputs[2][2].reshape(-1, 3 * h3 * w3, num_classes),
+            trt_outputs[2][0].reshape(-1, 3 * h3 * w3)
+        ]
+    ]
 
     boxes = post_processing(img_in, 0.4, num_classes, 0.5, trt_outputs)
 
