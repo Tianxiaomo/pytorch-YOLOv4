@@ -120,7 +120,7 @@ python demo.py <cfgFile> <weightFile> <imgFile>
     python demo_trt.py <tensorRT_engine_file> <input_image> <input_H> <input_W>
     ```
     - Note1: input_H and input_W should agree with the input size in the original darknet cfg file as well as the latter onnx file.
-    - Note2: extra NMS operations are need for the tensorRT ouput. This demo depends on TianXiaomo's NMS code from `tool/utils.py`.
+    - Note2: extra NMS operations are needed for the tensorRT ouput. This demo uses TianXiaomo's NMS code from `tool/utils.py`.
 
 
 # 5. ONNX2Tensorflow

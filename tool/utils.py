@@ -23,6 +23,10 @@ def softmax(x):
 
 
 def bbox_iou(box1, box2, x1y1x2y2=True):
+    
+    # print('iou box1:', box1)
+    # print('iou box2:', box2)
+
     if x1y1x2y2:
         mx = min(box1[0], box2[0])
         Mx = max(box1[2], box2[2])
@@ -118,7 +122,7 @@ def convert2cpu_long(gpu_matrix):
     return torch.LongTensor(gpu_matrix.size()).copy_(gpu_matrix)
 
 
-def yolo_foward(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1,
+def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1,
                               validation=False):
     # Output would be invalid if it does not satisfy this assert
     # assert (output.size(1) == (5 + num_classes) * num_anchors)
@@ -242,7 +246,7 @@ def yolo_foward(output, conf_thresh, num_classes, anchors, num_anchors, only_obj
     ymax = ymax.view(batch, num_anchors * H * W, 1)
 
     # Shape: [batch, num_anchors * h * w, 4]
-    boxes = torch.cat((xmin, ymin, xmax, ymax), dim=2)
+    boxes = torch.cat((xmin, ymin, xmax, ymax), dim=2).clamp(-10.0, 10.0)
 
     # Shape: [batch, num_anchors * h * w, num_classes, 4]
     # boxes = boxes.view(N, num_anchors * H * W, 1, 4).expand(N, num_anchors * H * W, num_classes, 4)

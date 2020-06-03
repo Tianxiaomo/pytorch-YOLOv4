@@ -216,6 +216,6 @@ class YoloLayer(nn.Module):
 
                 # boxes = get_region_boxes_in_model(output.data, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask))
 
-                return yolo_foward(output, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask))
+                return yolo_forward(output, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask))
 
                 # return boxes
