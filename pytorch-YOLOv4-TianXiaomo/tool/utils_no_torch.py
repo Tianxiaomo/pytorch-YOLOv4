@@ -4,6 +4,7 @@ import time
 import math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+from torch.autograd import Variable
 
 import itertools
 import struct  # get_image_size
@@ -58,44 +59,6 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
     return carea / uarea
 
 
-def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
-    
-    ########################################
-    #   Figure out bboxes from slices     #
-    ########################################
-
-    # boxes = np.mean(boxes, axis=2, keepdims=False)
-
-    t1 = time.time()
-    all_boxes = []
-    for b in range(boxes.shape[0]):
-        l_boxes = []
-        for i in range(boxes.shape[1]):
-            
-            det_conf = det_confs[b, i]
-            max_cls_conf = cls_confs[b, i].max(axis=0)
-            max_cls_id= cls_confs[b, i].argmax(axis=0)
-
-            if det_conf > conf_thresh:
-                bcx = boxes[b, i, 0]
-                bcy = boxes[b, i, 1]
-                bw = boxes[b, i, 2] - boxes[b, i, 0]
-                bh = boxes[b, i, 3] - boxes[b, i, 1]
-
-                l_box = [bcx, bcy, bw, bh, det_conf, max_cls_conf, max_cls_id]
-
-                l_boxes.append(l_box)
-        all_boxes.append(l_boxes)
-    t2 = time.time()
-
-    if False:
-        print('---------------------------------')
-        print('      boxes: %f' % (t2 - t1))
-        print('---------------------------------')
-    
-    
-    return all_boxes
-
 
 def nms(boxes, nms_thresh):
     if len(boxes) == 0:
@@ -122,7 +85,7 @@ def nms(boxes, nms_thresh):
 
 def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     import cv2
-    colors = np.array([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.float32)
+    colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]]);
 
     def get_color(c, x, max_val):
         ratio = float(x) / max_val * 5
@@ -165,7 +128,7 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
 
 
 def plot_boxes(img, boxes, savename=None, class_names=None):
-    colors = np.array([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.float32)
+    colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]]);
 
     def get_color(c, x, max_val):
         ratio = float(x) / max_val * 5
@@ -225,19 +188,63 @@ def load_class_names(namesfile):
     return class_names
 
 
+def do_detect(model, img, conf_thresh, n_classes, nms_thresh, use_cuda=1):
+    model.eval()
+    t0 = time.time()
+
+    if isinstance(img, Image.Image):
+        width = img.width
+        height = img.height
+        img = torch.ByteTensor(torch.ByteStorage.from_buffer(img.tobytes()))
+        img = img.view(height, width, 3).transpose(0, 1).transpose(0, 2).contiguous()
+        img = img.view(1, 3, height, width)
+        img = img.float().div(255.0)
+    elif type(img) == np.ndarray and len(img.shape) == 3:  # cv2 image
+        img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
+    elif type(img) == np.ndarray and len(img.shape) == 4:
+        img = torch.from_numpy(img.transpose(0, 3, 1, 2)).float().div(255.0)
+    else:
+        print("unknow image type")
+        exit(-1)
+
+    t1 = time.time()
+
+    if use_cuda:
+        img = img.cuda()
+    img = torch.autograd.Variable(img)
+    t2 = time.time()
+
+    boxes_and_confs = model(img)
+
+    # print(boxes_and_confs)
+    output = []
+    
+    for i in range(len(boxes_and_confs)):
+        output.append([])
+        output[-1].append(boxes_and_confs[i][0].cpu().detach().numpy())
+        output[-1].append(boxes_and_confs[i][1].cpu().detach().numpy())
+        output[-1].append(boxes_and_confs[i][2].cpu().detach().numpy())
+
+    '''
+    for i in range(len(boxes_and_confs)):
+        output.append(boxes_and_confs[i].cpu().detach().numpy())
+    '''
+
+    return post_processing(img, conf_thresh, n_classes, nms_thresh, output)
+
+
 def post_processing(img, conf_thresh, n_classes, nms_thresh, output):
 
-    # anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
-    # num_anchors = 9
-    # anchor_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-    # strides = [8, 16, 32]
-    # anchor_step = len(anchors) // num_anchors
+    anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
+    num_anchors = 9
+    anchor_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+    strides = [8, 16, 32]
+    anchor_step = len(anchors) // num_anchors
 
     boxes = []  
-    t1 = time.time()
+    
     for i in range(len(output)):
         boxes.append(get_region_boxes(output[i][0], output[i][1], output[i][2], conf_thresh))
-    t2 = time.time()
     '''
     for i in range(3):
         masked_anchors = []
@@ -259,9 +266,12 @@ def post_processing(img, conf_thresh, n_classes, nms_thresh, output):
         boxes = nms(boxes, nms_thresh)
     t4 = time.time()
 
-    print('-----------------------------------')
-    print('     get_region_boxes : %f' % (t2 - t1))
-    print('                  nms : %f' % (t4 - t3))
-    print('   post process total : %f' % (t4 - t1))
-    print('-----------------------------------')
+    if False:
+        print('-----------------------------------')
+        print(' image to tensor : %f' % (t1 - t0))
+        print('  tensor to cuda : %f' % (t2 - t1))
+        print('         predict : %f' % (t3 - t2))
+        print('             nms : %f' % (t4 - t3))
+        print('           total : %f' % (t4 - t0))
+        print('-----------------------------------')
     return boxes

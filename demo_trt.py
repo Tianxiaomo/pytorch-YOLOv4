@@ -1,14 +1,16 @@
 import sys
 import os
+import time
 import argparse
 import numpy as np
 import cv2
-from PIL import Image
+# from PIL import Image
 import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
 
 from tool.utils import *
+from tool.torch_utils import *
 
 try:
     # Sometimes python2 does not understand FileNotFoundError
@@ -128,6 +130,7 @@ def get_engine(engine_path):
 def detect(engine, context, buffers, image_src, image_size):
     IN_IMAGE_H, IN_IMAGE_W = image_size
 
+    ta = time.time()
     # Input
     resized = cv2.resize(image_src, (IN_IMAGE_W, IN_IMAGE_H), interpolation=cv2.INTER_LINEAR)
     img_in = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
@@ -207,6 +210,12 @@ def detect(engine, context, buffers, image_src, image_size):
             trt_outputs[2][0].reshape(-1, 3 * h3 * w3)
         ]
     ]
+
+    tb = time.time()
+
+    print('-----------------------------------')
+    print('    TRT inference time: %f' % (tb - ta))
+    print('-----------------------------------')
 
     boxes = post_processing(img_in, 0.4, num_classes, 0.5, trt_outputs)
 

@@ -456,7 +456,8 @@ if __name__ == "__main__":
 
     img = Image.open(imgfile).convert('RGB')
     sized = img.resize((608, 608))
-    from tool.utils import *
+    from tool.utils import load_class_names, plot_boxes
+    from tool.torch_utils import do_detect
 
     boxes = do_detect(model, sized, 0.5, n_classes,0.4, use_cuda)
 
