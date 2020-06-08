@@ -58,7 +58,7 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
     return carea / uarea
 
 
-def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
+def get_region_boxes_back(boxes, cls_confs, det_confs, conf_thresh):
     
     ########################################
     #   Figure out bboxes from slices     #
@@ -71,7 +71,7 @@ def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
     for b in range(boxes.shape[0]):
         l_boxes = []
         for i in range(boxes.shape[1]):
-            
+ 
             det_conf = det_confs[b, i]
             max_cls_conf = cls_confs[b, i].max(axis=0)
             max_cls_id= cls_confs[b, i].argmax(axis=0)
@@ -79,12 +79,52 @@ def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
             if det_conf > conf_thresh:
                 bcx = boxes[b, i, 0]
                 bcy = boxes[b, i, 1]
-                bw = boxes[b, i, 2] - boxes[b, i, 0]
-                bh = boxes[b, i, 3] - boxes[b, i, 1]
+                bw = boxes[b, i, 2] - bcx
+                bh = boxes[b, i, 3] - bcy
 
                 l_box = [bcx, bcy, bw, bh, det_conf, max_cls_conf, max_cls_id]
 
                 l_boxes.append(l_box)
+        all_boxes.append(l_boxes)
+    t2 = time.time()
+
+    if False:
+        print('---------------------------------')
+        print('      boxes: %f' % (t2 - t1))
+        print('---------------------------------')
+
+    return all_boxes
+
+
+def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
+    
+    ########################################
+    #   Figure out bboxes from slices     #
+    ########################################
+
+    t1 = time.time()
+    all_boxes = []
+    for b in range(boxes.shape[0]):
+        l_boxes = []
+        # Shape: [batch, num_anchors * H * W] -> [num_anchors * H * W]
+        # print(det_confs.shape)
+        det_conf = det_confs[b, :]
+        # print(det_conf.shape)
+        argwhere = np.argwhere(det_conf > conf_thresh)
+ 
+        max_cls_conf = cls_confs[b, argwhere].max(axis=2).flatten()
+        max_cls_id = cls_confs[b, argwhere].argmax(axis=2).flatten()
+
+        bcx = boxes[b, argwhere, 0]
+        bcy = boxes[b, argwhere, 1]
+        bw = boxes[b, argwhere, 2] - bcx
+        bh = boxes[b, argwhere, 3] - bcy
+
+        for i in range(bcx.shape[0]):
+            # print(max_cls_conf[i])
+            l_box = [bcx[i], bcy[i], bw[i], bh[i], det_conf[i], max_cls_conf[i], max_cls_id[i]]
+            l_boxes.append(l_box)
+
         all_boxes.append(l_boxes)
     t2 = time.time()
 
@@ -107,6 +147,7 @@ def nms(boxes, nms_thresh):
 
     sortIds = np.argsort(det_confs)
     out_boxes = []
+
     for i in range(len(boxes)):
         box_i = boxes[sortIds[i]]
         if box_i[4] > 0:
@@ -116,6 +157,7 @@ def nms(boxes, nms_thresh):
                 if bbox_iou(box_i, box_j, x1y1x2y2=False) > nms_thresh:
                     # print(box_i, box_j, bbox_iou(box_i, box_j, x1y1x2y2=False))
                     box_j[4] = 0
+    
     return out_boxes
 
 

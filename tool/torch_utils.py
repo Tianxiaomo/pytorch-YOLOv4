@@ -229,12 +229,11 @@ def do_detect(model, img, conf_thresh, n_classes, nms_thresh, use_cuda=1):
         print("unknow image type")
         exit(-1)
 
-    t1 = time.time()
-
     if use_cuda:
         img = img.cuda()
     img = torch.autograd.Variable(img)
-    t2 = time.time()
+    
+    t1 = time.time()
 
     boxes_and_confs = model(img)
 
@@ -246,6 +245,13 @@ def do_detect(model, img, conf_thresh, n_classes, nms_thresh, use_cuda=1):
         output[-1].append(boxes_and_confs[i][0].cpu().detach().numpy())
         output[-1].append(boxes_and_confs[i][1].cpu().detach().numpy())
         output[-1].append(boxes_and_confs[i][2].cpu().detach().numpy())
+
+    t2 = time.time()
+
+    print('-----------------------------------')
+    print('          Preprocess : %f' % (t2 - t1))
+    print('     Model Inference : %f' % (t1 - t0))
+    print('-----------------------------------')
 
     '''
     for i in range(len(boxes_and_confs)):
