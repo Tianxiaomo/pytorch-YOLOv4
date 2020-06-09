@@ -148,10 +148,10 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_ob
     #   Figure out bboxes from slices     #
     ########################################
 
-    xmin_list = []
-    ymin_list = []
-    xmax_list = []
-    ymax_list = []
+    bx_list = []
+    by_list = []
+    bw_list = []
+    bh_list = []
 
     det_confs_list = []
     cls_confs_list = []
@@ -159,10 +159,10 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_ob
     for i in range(num_anchors):
         begin = i * (5 + 1)
 
-        xmin_list.append(list_of_slices[begin])
-        ymin_list.append(list_of_slices[begin + 1])
-        xmax_list.append(list_of_slices[begin] + list_of_slices[begin + 2])
-        ymax_list.append(list_of_slices[begin + 1] + list_of_slices[begin + 3])
+        bx_list.append(list_of_slices[begin])
+        by_list.append(list_of_slices[begin + 1])
+        bw_list.append(list_of_slices[begin + 2])
+        bh_list.append(list_of_slices[begin + 3])
 
         # Shape: [batch, 1, H, W]
         det_confs = list_of_slices[begin + 4]
@@ -174,16 +174,16 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_ob
         cls_confs_list.append(cls_confs)
     
     # Shape: [batch, num_anchors, H, W]
-    xmin = torch.cat(xmin_list, dim=1)
-    ymin = torch.cat(ymin_list, dim=1)
-    xmax = torch.cat(xmax_list, dim=1)
-    ymax = torch.cat(ymax_list, dim=1)
+    bx = torch.cat(bx_list, dim=1)
+    by = torch.cat(by_list, dim=1)
+    bw = torch.cat(bw_list, dim=1)
+    bh = torch.cat(bh_list, dim=1)
 
     # normalize coordinates to [0, 1]
-    xmin = xmin / W
-    ymin = ymin / H
-    xmax = xmax / W
-    ymax = ymax / H
+    bx = bx / W
+    by = by / H
+    bw = bw / W
+    bh = bh / H
 
     # Shape: [batch, num_anchors * H * W] 
     det_confs = torch.cat(det_confs_list, dim=1).view(batch, num_anchors * H * W)
@@ -194,13 +194,13 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_ob
     cls_confs = cls_confs.permute(0, 1, 3, 2).reshape(batch, num_anchors * H * W, num_classes)
 
     # Shape: [batch, num_anchors * H * W, 1]
-    xmin = xmin.view(batch, num_anchors * H * W, 1)
-    ymin = ymin.view(batch, num_anchors * H * W, 1)
-    xmax = xmax.view(batch, num_anchors * H * W, 1)
-    ymax = ymax.view(batch, num_anchors * H * W, 1)
+    bx = bx.view(batch, num_anchors * H * W, 1)
+    by = by.view(batch, num_anchors * H * W, 1)
+    bw = bw.view(batch, num_anchors * H * W, 1)
+    bh = bh.view(batch, num_anchors * H * W, 1)
 
     # Shape: [batch, num_anchors * h * w, 4]
-    boxes = torch.cat((xmin, ymin, xmax, ymax), dim=2).clamp(-10.0, 10.0)
+    boxes = torch.cat((bx, by, bw, bh), dim=2).clamp(-10.0, 10.0)
 
     # Shape: [batch, num_anchors * h * w, num_classes, 4]
     # boxes = boxes.view(N, num_anchors * H * W, 1, 4).expand(N, num_anchors * H * W, num_classes, 4)

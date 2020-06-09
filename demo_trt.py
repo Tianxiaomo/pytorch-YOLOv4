@@ -217,7 +217,7 @@ def detect(engine, context, buffers, image_src, image_size):
     print('    TRT inference time: %f' % (tb - ta))
     print('-----------------------------------')
 
-    boxes = post_processing(img_in, 0.4, num_classes, 0.5, trt_outputs)
+    boxes = post_processing(img_in, 0.5, num_classes, 0.4, trt_outputs)
 
     if num_classes == 20:
         namesfile = 'data/voc.names'

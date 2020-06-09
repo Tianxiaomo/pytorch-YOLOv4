@@ -20,30 +20,21 @@ def softmax(x):
     return x
 
 
-def bbox_iou(box1, box2, x1y1x2y2=True):
+def bbox_iou(box1, box2):
     
     # print('iou box1:', box1)
     # print('iou box2:', box2)
 
-    if x1y1x2y2:
-        mx = min(box1[0], box2[0])
-        Mx = max(box1[2], box2[2])
-        my = min(box1[1], box2[1])
-        My = max(box1[3], box2[3])
-        w1 = box1[2] - box1[0]
-        h1 = box1[3] - box1[1]
-        w2 = box2[2] - box2[0]
-        h2 = box2[3] - box2[1]
-    else:
-        w1 = box1[2]
-        h1 = box1[3]
-        w2 = box2[2]
-        h2 = box2[3]
+    w1 = box1[2]
+    h1 = box1[3]
+    w2 = box2[2]
+    h2 = box2[3]
 
-        mx = min(box1[0], box2[0])
-        Mx = max(box1[0] + w1, box2[0] + w2)
-        my = min(box1[1], box2[1])
-        My = max(box1[1] + h1, box2[1] + h2)
+    mx = min(box1[0], box2[0])
+    Mx = max(box1[0] + w1, box2[0] + w2)
+    my = min(box1[1], box2[1])
+    My = max(box1[1] + h1, box2[1] + h2)
+        
     uw = Mx - mx
     uh = My - my
     cw = w1 + w2 - uw
@@ -66,31 +57,32 @@ def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
     #   Figure out bboxes from slices     #
     ########################################
 
+    # boxes:     [batch, num_anchors * H * W]
+    # det_confs: [batch, num_anchors * H * W]
+    # cls_confs: [batch, num_anchors * H * W, num_classes]
+
     t1 = time.time()
     all_boxes = []
     for b in range(boxes.shape[0]):
-        l_boxes = []
+        # l_boxes = []
         # Shape: [batch, num_anchors * H * W] -> [num_anchors * H * W]
         # print(det_confs.shape)
-        det_conf = det_confs[b, :]
+        det_confs = det_confs[b, :]
         # print(det_conf.shape)
-        argwhere = np.argwhere(det_conf > conf_thresh)
+        argwhere = np.argwhere(det_confs > conf_thresh)
  
-        det_conf = det_conf[argwhere].flatten()
-        max_cls_conf = cls_confs[b, argwhere].max(axis=2).flatten()
-        max_cls_id = cls_confs[b, argwhere].argmax(axis=2).flatten()
+        det_confs = det_confs[argwhere].flatten()
+        max_cls_confs = cls_confs[b, argwhere].max(axis=2).flatten()
+        max_cls_ids = cls_confs[b, argwhere].argmax(axis=2).flatten()
+        bboxes = boxes[b, argwhere, :].reshape(-1, 4)
+        '''
+        print(det_confs.shape)
+        print(max_cls_confs.shape)
+        print(max_cls_ids.shape)
+        print(bboxes.shape)
+        '''
 
-        bcx = boxes[b, argwhere, 0]
-        bcy = boxes[b, argwhere, 1]
-        bw = boxes[b, argwhere, 2]
-        bh = boxes[b, argwhere, 3]
-
-        for i in range(bcx.shape[0]):
-            # print(max_cls_conf[i])
-            l_box = [bcx[i], bcy[i], bw[i], bh[i], det_conf[i], max_cls_conf[i], max_cls_id[i]]
-            l_boxes.append(l_box)
-
-        all_boxes.append(l_boxes)
+        all_boxes.append([bboxes, det_confs, max_cls_confs, max_cls_ids])
     t2 = time.time()
 
     if False:
@@ -98,31 +90,49 @@ def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
         print('      boxes: %f' % (t2 - t1))
         print('---------------------------------')
     
-    
     return all_boxes
 
 
-def nms(boxes, nms_thresh):
-    if len(boxes) == 0:
-        return boxes
+def nms(bboxes_data, nms_thresh):
+    
+    bboxes, det_confs, max_cls_confs, max_cls_ids = bboxes_data
+    '''
+    if bboxes.shape[0] == 0:
+        return []
+    '''
 
-    det_confs = np.zeros(len(boxes))
-    for i in range(len(boxes)):
-        det_confs[i] = 1 - boxes[i][4]
+    det_confs_reversed = 1 - det_confs
+    sortIds = np.argsort(det_confs_reversed)
 
-    sortIds = np.argsort(det_confs)
+    # print(sortIds)
+    bboxes = bboxes[sortIds]
+    det_confs = det_confs[sortIds]
+    max_cls_confs = max_cls_confs[sortIds]
+    max_cls_ids = max_cls_ids[sortIds]
+
+    validity = np.zeros(det_confs.shape, dtype=np.int32)
+    validity = 1 - validity
+    
     out_boxes = []
 
-    for i in range(len(boxes)):
-        box_i = boxes[sortIds[i]]
-        if box_i[4] > 0:
-            out_boxes.append(box_i)
-            for j in range(i + 1, len(boxes)):
-                box_j = boxes[sortIds[j]]
-                if bbox_iou(box_i, box_j, x1y1x2y2=False) > nms_thresh:
-                    # print(box_i, box_j, bbox_iou(box_i, box_j, x1y1x2y2=False))
-                    box_j[4] = 0
-    
+    for i in range(bboxes.shape[0]):
+
+        bbox_i = bboxes[i]
+        max_cls_conf_i = max_cls_confs[i]
+        max_cls_ids_i = max_cls_ids[i]
+        
+        if validity[i] > 0:
+            out_boxes.append([bbox_i, max_cls_conf_i, max_cls_ids_i])
+
+            for j in range(i + 1, bboxes.shape[0]):
+                bbox_j = bboxes[j]
+
+                if bbox_iou(bbox_i, bbox_j) > nms_thresh:
+                    validity[j] = 0
+    '''
+    for out_box in out_boxes:
+        print(out_box)
+    '''
     return out_boxes
 
 
@@ -169,6 +179,7 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
         print("save plot results to %s" % savename)
         cv2.imwrite(savename, img)
     return img
+
 
 
 def plot_boxes(img, boxes, savename=None, class_names=None):
@@ -245,18 +256,31 @@ def post_processing(img, conf_thresh, n_classes, nms_thresh, output):
     for i in range(len(output)):
         boxes.append(get_region_boxes(output[i][0], output[i][1], output[i][2], conf_thresh))
     t2 = time.time()
+        
+    bboxes_data_list = []
+    
+    for index in range(img.shape[0]):
+        
+        bboxes = np.concatenate((boxes[0][index][0], boxes[1][index][0], boxes[2][index][0]), axis=0)
 
-    if img.shape[0] > 1:
-        bboxs_for_imgs = [
-            boxes[0][index] + boxes[1][index] + boxes[2][index]
-            for index in range(img.shape[0])]
-        # 分别对每一张图片的结果进行nms
-        t3 = time.time()
-        boxes = [nms(bboxs, nms_thresh) for bboxs in bboxs_for_imgs]
-    else:
-        boxes = boxes[0][0] + boxes[1][0] + boxes[2][0]
-        t3 = time.time()
-        boxes = nms(boxes, nms_thresh)
+        det_confs = np.concatenate((boxes[0][index][1], boxes[1][index][1], boxes[2][index][1]), axis=0)
+
+        max_cls_confs = np.concatenate((boxes[0][index][2], boxes[1][index][2], boxes[2][index][2]), axis=0)
+
+        max_cls_ids = np.concatenate((boxes[0][index][3], boxes[1][index][3], boxes[2][index][3]), axis=0)
+
+        print('Shapes of combined arrays from all three net outputs: ')
+        print(bboxes.shape)
+        print(det_confs.shape)
+        print(max_cls_confs.shape)
+        print(max_cls_ids.shape)
+
+        bboxes_data_list.append([bboxes, det_confs, max_cls_confs, max_cls_ids])
+    
+    t3 = time.time()
+    # 分别对每一张图片的结果进行nms
+    bboxes_to_plot_for_imgs = [nms(bboxes_data, nms_thresh) for bboxes_data in bboxes_data_list]
+        
     t4 = time.time()
 
     print('-----------------------------------')
@@ -264,4 +288,4 @@ def post_processing(img, conf_thresh, n_classes, nms_thresh, output):
     print('                  nms : %f' % (t4 - t3))
     print('   post process total : %f' % (t4 - t1))
     print('-----------------------------------')
-    return boxes
+    return bboxes_to_plot_for_imgs
