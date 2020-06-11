@@ -3,7 +3,6 @@ import os
 import time
 import math
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
 
 import itertools
 import struct  # get_image_size
@@ -105,66 +104,11 @@ def get_region_boxes(boxes, confs, conf_thresh):
 
     if False:
         print('---------------------------------')
-        print('cls_conf * det_conf: %f' % (t1 - t0))
         print('              boxes: %f' % (t2 - t1))
         print('---------------------------------')
     
     
     return all_boxes
-
-
-
-def get_region_boxes_back(boxes, cls_confs, det_confs, conf_thresh):
-    
-    ########################################
-    #   Figure out bboxes from slices     #
-    ########################################
-
-    # boxes:     [batch, num_anchors * H * W, 4]
-    # cls_confs: [batch, num_anchors * H * W, num_classes]
-    # det_confs: [batch, num_anchors * H * W]
-    num_classes = cls_confs.shape[2]
-
-    boxes = np.expand_dims(boxes, axis=2).repeat(num_classes, 2)
-    det_confs = np.expand_dims(det_confs, axis=2).repeat(num_classes, 2)
-    print(boxes.shape)
-    print(det_confs.shape)
-
-    t1 = time.time()
-    all_boxes = []
-    for b in range(boxes.shape[0]):
-        l_boxes = []
-        # Shape: [batch, num_anchors * H * W] -> [num_anchors * H * W]
-        # print(det_confs.shape)
-        det_conf = det_confs[b, :]
-        # print(det_conf.shape)
-        argwhere = np.argwhere(det_conf > conf_thresh)
- 
-        det_conf = det_conf[argwhere].flatten()
-        max_cls_conf = cls_confs[b, argwhere].max(axis=2).flatten()
-        max_cls_id = cls_confs[b, argwhere].argmax(axis=2).flatten()
-
-        bcx = boxes[b, argwhere, 0]
-        bcy = boxes[b, argwhere, 1]
-        bw = boxes[b, argwhere, 2]
-        bh = boxes[b, argwhere, 3]
-
-        for i in range(bcx.shape[0]):
-            # print(max_cls_conf[i])
-            l_box = [bcx[i], bcy[i], bw[i], bh[i], det_conf[i], max_cls_conf[i], max_cls_id[i]]
-            l_boxes.append(l_box)
-
-        all_boxes.append(l_boxes)
-    t2 = time.time()
-
-    if False:
-        print('---------------------------------')
-        print('      boxes: %f' % (t2 - t1))
-        print('---------------------------------')
-    
-    
-    return all_boxes
-
 
 
 
@@ -234,46 +178,6 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     if savename:
         print("save plot results to %s" % savename)
         cv2.imwrite(savename, img)
-    return img
-
-
-def plot_boxes(img, boxes, savename=None, class_names=None):
-    colors = np.array([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.float32)
-
-    def get_color(c, x, max_val):
-        ratio = float(x) / max_val * 5
-        i = int(math.floor(ratio))
-        j = int(math.ceil(ratio))
-        ratio = ratio - i
-        r = (1 - ratio) * colors[i][c] + ratio * colors[j][c]
-        return int(r * 255)
-
-    width = img.width
-    height = img.height
-    draw = ImageDraw.Draw(img)
-    for i in range(len(boxes)):
-        box = boxes[i]
-        x1 = (box[0] - box[2] / 2.0) * width
-        y1 = (box[1] - box[3] / 2.0) * height
-        x2 = (box[0] + box[2] / 2.0) * width
-        y2 = (box[1] + box[3] / 2.0) * height
-
-        rgb = (255, 0, 0)
-        if len(box) >= 7 and class_names:
-            cls_conf = box[5]
-            cls_id = box[6]
-            print('%s: %f' % (class_names[cls_id], cls_conf))
-            classes = len(class_names)
-            offset = cls_id * 123457 % classes
-            red = get_color(2, offset, classes)
-            green = get_color(1, offset, classes)
-            blue = get_color(0, offset, classes)
-            rgb = (red, green, blue)
-            draw.text((x1, y1), class_names[cls_id], fill=rgb)
-        draw.rectangle([x1, y1, x2, y2], outline=rgb)
-    if savename:
-        print("save plot results to %s" % savename)
-        img.save(savename)
     return img
 
 

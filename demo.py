@@ -30,61 +30,6 @@ else:
     namesfile = 'data/x.names'
 
 
-def detect(cfgfile, weightfile, imgfile):
-    m = Darknet(cfgfile)
-
-    m.print_network()
-    m.load_weights(weightfile)
-    print('Loading weights from %s... Done!' % (weightfile))
-
-    if use_cuda:
-        m.cuda()
-
-    img = Image.open(imgfile).convert('RGB')
-    sized = img.resize((m.width, m.height))
-
-    for i in range(2):
-        start = time.time()
-        boxes = do_detect(m, sized, 0.5, num_classes, 0.4, use_cuda)
-        finish = time.time()
-        if i == 1:
-            print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
-
-    class_names = load_class_names(namesfile)
-    plot_boxes(img, boxes, 'predictions.jpg', class_names)
-
-
-def detect_imges(cfgfile, weightfile, imgfile_list=['data/dog.jpg', 'data/giraffe.jpg']):
-    m = Darknet(cfgfile)
-
-    m.print_network()
-    m.load_weights(weightfile)
-    print('Loading weights from %s... Done!' % (weightfile))
-
-    if use_cuda:
-        m.cuda()
-
-    imges = []
-    imges_list = []
-    for imgfile in imgfile_list:
-        img = Image.open(imgfile).convert('RGB')
-        imges_list.append(img)
-        sized = img.resize((m.width, m.height))
-        imges.append(np.expand_dims(np.array(sized), axis=0))
-
-    images = np.concatenate(imges, 0)
-    for i in range(2):
-        start = time.time()
-        boxes = do_detect(m, images, 0.5, num_classes, 0.4, use_cuda)
-        finish = time.time()
-        if i == 1:
-            print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
-
-    class_names = load_class_names(namesfile)
-    for i,(img,box) in enumerate(zip(imges_list,boxes)):
-        plot_boxes(img, box, 'predictions{}.jpg'.format(i), class_names)
-
-
 def detect_cv2(cfgfile, weightfile, imgfile):
     import cv2
     m = Darknet(cfgfile)
@@ -102,7 +47,7 @@ def detect_cv2(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, m.num_classes, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.5, num_classes, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
@@ -191,7 +136,7 @@ def get_args():
 if __name__ == '__main__':
     args = get_args()
     if args.imgfile:
-        detect(args.cfgfile, args.weightfile, args.imgfile)
+        detect_cv2(args.cfgfile, args.weightfile, args.imgfile)
         # detect_imges(args.cfgfile, args.weightfile)
         # detect_cv2(args.cfgfile, args.weightfile, args.imgfile)
         # detect_skimage(args.cfgfile, args.weightfile, args.imgfile)
