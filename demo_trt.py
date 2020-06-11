@@ -10,7 +10,6 @@ import pycuda.driver as cuda
 import pycuda.autoinit
 
 from tool.utils import *
-from tool.torch_utils import *
 
 try:
     # Sometimes python2 does not understand FileNotFoundError
