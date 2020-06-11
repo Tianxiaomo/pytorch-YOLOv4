@@ -60,11 +60,75 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
 
 
 
-def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
+def get_region_boxes(boxes, confs, conf_thresh):
     
     ########################################
     #   Figure out bboxes from slices     #
     ########################################
+
+    # boxes: [batch, num_anchors * H * W, num_classes, 4]
+    # confs: [batch, num_anchors * H * W, num_classes]
+
+    # [batch, num_anchors * H * W, num_classes, 4] --> [batch, num_anchors * H * W, 4]
+    boxes = boxes[:, :, 0, :]
+
+    t1 = time.time()
+    all_boxes = []
+    for b in range(boxes.shape[0]):
+        l_boxes = []
+
+        # [num_anchors * H * W, num_classes] --> [num_anchors * H * W]
+        max_conf = confs[b, :, :].max(axis=1)
+        # [num_anchors * H * W, num_classes] --> [num_anchors * H * W]
+        max_id = confs[b, :, :].argmax(axis=1)
+
+        argwhere = np.argwhere(max_conf > conf_thresh)
+
+        max_conf = max_conf[argwhere].flatten()
+        max_id = max_id[argwhere].flatten()
+
+        # print(max_conf)
+        # print(max_id)
+
+        bcx = boxes[b, argwhere, 0]
+        bcy = boxes[b, argwhere, 1]
+        bw = boxes[b, argwhere, 2]
+        bh = boxes[b, argwhere, 3]
+
+        for i in range(bcx.shape[0]):
+            # print(max_cls_conf[i])
+            l_box = [bcx[i], bcy[i], bw[i], bh[i], max_conf[i], max_conf[i], max_id[i]]
+            l_boxes.append(l_box)
+
+        all_boxes.append(l_boxes)
+    t2 = time.time()
+
+    if False:
+        print('---------------------------------')
+        print('cls_conf * det_conf: %f' % (t1 - t0))
+        print('              boxes: %f' % (t2 - t1))
+        print('---------------------------------')
+    
+    
+    return all_boxes
+
+
+
+def get_region_boxes_back(boxes, cls_confs, det_confs, conf_thresh):
+    
+    ########################################
+    #   Figure out bboxes from slices     #
+    ########################################
+
+    # boxes:     [batch, num_anchors * H * W, 4]
+    # cls_confs: [batch, num_anchors * H * W, num_classes]
+    # det_confs: [batch, num_anchors * H * W]
+    num_classes = cls_confs.shape[2]
+
+    boxes = np.expand_dims(boxes, axis=2).repeat(num_classes, 2)
+    det_confs = np.expand_dims(det_confs, axis=2).repeat(num_classes, 2)
+    print(boxes.shape)
+    print(det_confs.shape)
 
     t1 = time.time()
     all_boxes = []
@@ -100,6 +164,8 @@ def get_region_boxes(boxes, cls_confs, det_confs, conf_thresh):
     
     
     return all_boxes
+
+
 
 
 def nms(boxes, nms_thresh):
@@ -243,7 +309,7 @@ def post_processing(img, conf_thresh, n_classes, nms_thresh, output):
     boxes = []  
     t1 = time.time()
     for i in range(len(output)):
-        boxes.append(get_region_boxes(output[i][0], output[i][1], output[i][2], conf_thresh))
+        boxes.append(get_region_boxes(output[i][0], output[i][1], conf_thresh))
     t2 = time.time()
 
     if img.shape[0] > 1:

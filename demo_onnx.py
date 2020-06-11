@@ -55,15 +55,12 @@ def detect(session, image_src):
     print(outputs[3].shape)
     print(outputs[4].shape)
     print(outputs[5].shape)
-    print(outputs[6].shape)
-    print(outputs[7].shape)
-    print(outputs[8].shape)
     '''
 
     outputs = [
-        [outputs[0],outputs[1],outputs[2]],
-        [outputs[3],outputs[4],outputs[5]],
-        [outputs[6],outputs[7],outputs[8]]
+        [outputs[0],outputs[1]],
+        [outputs[2],outputs[3]],
+        [outputs[4],outputs[5]]
     ]
 
     # print(outputs[2])

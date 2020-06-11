@@ -294,14 +294,22 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_ob
     bw = bw.view(batch, num_anchors * H * W, 1)
     bh = bh.view(batch, num_anchors * H * W, 1)
 
-    # Shape: [batch, num_anchors * h * w, 4]
-    boxes = torch.cat((bx, by, bw, bh), dim=2).clamp(-10.0, 10.0)
-
+    # Shape: [batch, num_anchors * h * w, 1, 4]
+    boxes = torch.cat((bx, by, bw, bh), dim=2).view(batch, num_anchors * H * W, 1, 4)
     # Shape: [batch, num_anchors * h * w, num_classes, 4]
-    # boxes = boxes.view(N, num_anchors * H * W, 1, 4).expand(N, num_anchors * H * W, num_classes, 4)
+    boxes = boxes.repeat([1, 1, num_classes, 1])
 
+    # boxes:     [batch, num_anchors * H * W, num_classes, 4]
+    # cls_confs: [batch, num_anchors * H * W, num_classes]
+    # det_confs: [batch, num_anchors * H * W]
 
-    return  boxes, cls_confs, det_confs
+    det_confs = det_confs.view(batch, num_anchors * H * W, 1)
+    confs = cls_confs * det_confs
+
+    # boxes: [batch, num_anchors * H * W, num_classes, 4]
+    # confs: [batch, num_anchors * H * W, num_classes]
+
+    return  boxes, confs
 
 
 
@@ -340,7 +348,6 @@ def do_detect(model, img, conf_thresh, n_classes, nms_thresh, use_cuda=1):
         output.append([])
         output[-1].append(boxes_and_confs[i][0].cpu().detach().numpy())
         output[-1].append(boxes_and_confs[i][1].cpu().detach().numpy())
-        output[-1].append(boxes_and_confs[i][2].cpu().detach().numpy())
 
     t2 = time.time()
 
