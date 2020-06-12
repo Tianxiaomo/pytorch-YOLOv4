@@ -234,6 +234,8 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_ob
     # Prepare C-x, C-y, P-w, P-h (None of them are torch related)
     grid_x = np.expand_dims(np.expand_dims(np.expand_dims(np.linspace(0, W - 1, W), axis=0).repeat(H, 0), axis=0), axis=0)
     grid_y = np.expand_dims(np.expand_dims(np.expand_dims(np.linspace(0, H - 1, H), axis=1).repeat(W, 1), axis=0), axis=0)
+    # grid_x = torch.linspace(0, W - 1, W).reshape(1, 1, 1, W).repeat(1, 1, H, 1)
+    # grid_y = torch.linspace(0, H - 1, H).reshape(1, 1, H, 1).repeat(1, 1, 1, W)
 
     anchor_w = []
     anchor_h = []
@@ -255,9 +257,9 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_ob
     for i in range(num_anchors):
         ii = i * 2
         # Shape: [batch, 1, H, W]
-        bx = bxy[:, ii] + torch.tensor(grid_x, device=device, dtype=torch.float32)
+        bx = bxy[:, ii] + torch.tensor(grid_x, device=device, dtype=torch.float32) # grid_x.to(device=device, dtype=torch.float32)
         # Shape: [batch, 1, H, W]
-        by = bxy[:, ii + 1] + torch.tensor(grid_y, device=device, dtype=torch.float32)
+        by = bxy[:, ii + 1] + torch.tensor(grid_y, device=device, dtype=torch.float32) # grid_y.to(device=device, dtype=torch.float32)
         # Shape: [batch, 1, H, W]
         bw = bwh[:, ii] * anchor_w[i]
         # Shape: [batch, 1, H, W]

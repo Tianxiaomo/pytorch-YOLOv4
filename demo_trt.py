@@ -158,6 +158,14 @@ def detect(engine, context, buffers, image_src, image_size):
     trt_outputs[1] = trt_outputs[1].reshape(-1, 255, IN_IMAGE_H // 16, IN_IMAGE_W // 16)
     trt_outputs[2] = trt_outputs[2].reshape(-1, 255, IN_IMAGE_H // 32, IN_IMAGE_W // 32)
     '''
+    '''
+    print(trt_outputs[0])
+    print(trt_outputs[1])
+    print(trt_outputs[2])
+    print(trt_outputs[3])
+    print(trt_outputs[4])
+    print(trt_outputs[5])
+    '''
 
     h1 = IN_IMAGE_H // 8
     w1 = IN_IMAGE_W // 8

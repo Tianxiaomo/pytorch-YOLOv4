@@ -421,7 +421,7 @@ class Yolov4(nn.Module):
 
 if __name__ == "__main__":
     import sys
-    from PIL import Image
+    import cv2
 
     namesfile = None
     if len(sys.argv) == 4:
@@ -454,12 +454,14 @@ if __name__ == "__main__":
     if use_cuda:
         model.cuda()
 
-    img = Image.open(imgfile).convert('RGB')
-    sized = img.resize((608, 608))
-    from tool.utils import load_class_names, plot_boxes
+    img = cv2.imread(imgfile)
+    sized = cv2.resize(img, (608, 608))
+    sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
+
+    from tool.utils import load_class_names, plot_boxes_cv2
     from tool.torch_utils import do_detect
 
     boxes = do_detect(model, sized, 0.5, n_classes,0.4, use_cuda)
 
     class_names = load_class_names(namesfile)
-    plot_boxes(img, boxes, 'predictions.jpg', class_names)
+    plot_boxes_cv2(img, boxes, 'predictions.jpg', class_names)

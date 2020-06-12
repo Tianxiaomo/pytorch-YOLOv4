@@ -60,7 +60,8 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
 
 
 def get_region_boxes(boxes, confs, conf_thresh):
-    
+
+    print('Getting boxes from boxes and confs ...')
     ########################################
     #   Figure out bboxes from slices     #
     ########################################
@@ -94,8 +95,12 @@ def get_region_boxes(boxes, confs, conf_thresh):
         bw = boxes[b, argwhere, 2]
         bh = boxes[b, argwhere, 3]
 
+        # print(bcy)
+
         for i in range(bcx.shape[0]):
             # print(max_cls_conf[i])
+            # print('bbox: [ {},\t{},\t{},\t{} ]'.format(bcx[i], bcy[i], bw[i], bh[i]))
+
             l_box = [bcx[i], bcy[i], bw[i], bh[i], max_conf[i], max_conf[i], max_id[i]]
             l_boxes.append(l_box)
 
