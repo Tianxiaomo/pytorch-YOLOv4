@@ -3,6 +3,7 @@ ttest
 *.pth
 *.onnx
 *.engine
+*.pyc
 
 __pycache__
 .idea
