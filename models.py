@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from tool.yolo_layer import YoloLayer
 
 
 class Mish(torch.nn.Module):
@@ -305,13 +306,17 @@ class Neck(nn.Module):
 
 
 class Yolov4Head(nn.Module):
-    def __init__(self, output_ch):
+    def __init__(self, output_ch, yolo_layer_included=False):
         super().__init__()
+        self.yolo_layer_included = yolo_layer_included
+
         self.conv1 = Conv_Bn_Activation(128, 256, 3, 1, 'leaky')
         self.conv2 = Conv_Bn_Activation(256, output_ch, 1, 1, 'linear', bn=False, bias=True)
-        # self.yolo1 = YoloLayer(anchor_mask=[0, 1, 2], num_classes=80,
-        #                        anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
-        #                        num_anchors=9, stride=8)
+
+        self.yolo1 = YoloLayer(
+                                anchor_mask=[0, 1, 2], num_classes=80,
+                                anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+                                num_anchors=9, stride=8)
 
         # R -4
         self.conv3 = Conv_Bn_Activation(128, 256, 3, 2, 'leaky')
@@ -324,9 +329,11 @@ class Yolov4Head(nn.Module):
         self.conv8 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
         self.conv9 = Conv_Bn_Activation(256, 512, 3, 1, 'leaky')
         self.conv10 = Conv_Bn_Activation(512, output_ch, 1, 1, 'linear', bn=False, bias=True)
-        # self.yolo2 = YoloLayer(anchor_mask=[3, 4, 5], num_classes=80,
-        #                        anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
-        #                        num_anchors=9, stride=16)
+        
+        self.yolo2 = YoloLayer(
+                                anchor_mask=[3, 4, 5], num_classes=80,
+                                anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+                                num_anchors=9, stride=16)
 
         # R -4
         self.conv11 = Conv_Bn_Activation(256, 512, 3, 2, 'leaky')
@@ -339,14 +346,15 @@ class Yolov4Head(nn.Module):
         self.conv16 = Conv_Bn_Activation(1024, 512, 1, 1, 'leaky')
         self.conv17 = Conv_Bn_Activation(512, 1024, 3, 1, 'leaky')
         self.conv18 = Conv_Bn_Activation(1024, output_ch, 1, 1, 'linear', bn=False, bias=True)
-        # self.yolo3 = YoloLayer(anchor_mask=[6, 7, 8], num_classes=80,
-        #                        anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
-        #                        num_anchors=9, stride=32)
+        
+        self.yolo3 = YoloLayer(
+                                anchor_mask=[6, 7, 8], num_classes=80,
+                                anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+                                num_anchors=9, stride=32)
 
     def forward(self, input1, input2, input3):
         x1 = self.conv1(input1)
         x2 = self.conv2(x1)
-        # y1 = self.yolo1(x2)
 
         x3 = self.conv3(input1)
         # R -1 -16
@@ -358,7 +366,6 @@ class Yolov4Head(nn.Module):
         x8 = self.conv8(x7)
         x9 = self.conv9(x8)
         x10 = self.conv10(x9)
-        # y2 = self.yolo2(x10)
 
         # R -4
         x11 = self.conv11(x8)
@@ -372,14 +379,21 @@ class Yolov4Head(nn.Module):
         x16 = self.conv16(x15)
         x17 = self.conv17(x16)
         x18 = self.conv18(x17)
-        return [x2, x10, x18]
-        # y3 = self.yolo3(x18)
-        # return [y1, y2, y3]
-        # return y3
+        
+        if self.yolo_layer_included:
+            y1 = self.yolo1(x2)
+            y2 = self.yolo2(x10)
+            y3 = self.yolo3(x18)
+
+            return [y1, y2, y3]
+        
+        else:
+            return [x2, x10, x18]
+
 
 
 class Yolov4(nn.Module):
-    def __init__(self, yolov4conv137weight=None, n_classes=80):
+    def __init__(self, yolov4conv137weight=None, n_classes=80, yolo_layer_included=False):
         super().__init__()
 
         output_ch = (4 + 1 + n_classes) * 3
@@ -403,8 +417,10 @@ class Yolov4(nn.Module):
             # 2. overwrite entries in the existing state dict
             model_dict.update(pretrained_dict)
             _model.load_state_dict(model_dict)
+        
         # head
-        self.head = Yolov4Head(output_ch)
+        self.head = Yolov4Head(output_ch, yolo_layer_included)
+
 
     def forward(self, input):
         d1 = self.down1(input)
@@ -437,7 +453,7 @@ if __name__ == "__main__":
         print('Usage: ')
         print('  python models.py num_classes weightfile imgfile namefile')
 
-    model = Yolov4(n_classes=n_classes)
+    model = Yolov4(n_classes=n_classes, yolo_layer_included=True)
 
     pretrained_dict = torch.load(weightfile, map_location=torch.device('cpu'))
     model.load_state_dict(pretrained_dict)
@@ -461,7 +477,7 @@ if __name__ == "__main__":
     from tool.utils import load_class_names, plot_boxes_cv2
     from tool.torch_utils import do_detect
 
-    boxes = do_detect(model, sized, 0.5, n_classes,0.4, use_cuda)
+    boxes = do_detect(model, sized, 0.5, n_classes, 0.4, use_cuda)
 
     class_names = load_class_names(namesfile)
     plot_boxes_cv2(img, boxes, 'predictions.jpg', class_names)
