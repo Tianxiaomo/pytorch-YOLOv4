@@ -3,7 +3,7 @@ import torch
 from tool.darknet2pytorch import Darknet
 
 
-def fransform_to_onnx(cfgfile, weightfile, batch_size=1):
+def transform_to_onnx(cfgfile, weightfile, batch_size=1):
     model = Darknet(cfgfile)
 
     model.print_network()

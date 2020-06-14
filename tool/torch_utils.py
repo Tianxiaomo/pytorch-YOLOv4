@@ -4,7 +4,6 @@ import time
 import math
 import torch
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
 from torch.autograd import Variable
 
 import itertools
@@ -320,14 +319,7 @@ def do_detect(model, img, conf_thresh, n_classes, nms_thresh, use_cuda=1):
     model.eval()
     t0 = time.time()
 
-    if isinstance(img, Image.Image):
-        width = img.width
-        height = img.height
-        img = torch.ByteTensor(torch.ByteStorage.from_buffer(img.tobytes()))
-        img = img.view(height, width, 3).transpose(0, 1).transpose(0, 2).contiguous()
-        img = img.view(1, 3, height, width)
-        img = img.float().div(255.0)
-    elif type(img) == np.ndarray and len(img.shape) == 3:  # cv2 image
+    if type(img) == np.ndarray and len(img.shape) == 3:  # cv2 image
         img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
     elif type(img) == np.ndarray and len(img.shape) == 4:
         img = torch.from_numpy(img.transpose(0, 3, 1, 2)).float().div(255.0)
