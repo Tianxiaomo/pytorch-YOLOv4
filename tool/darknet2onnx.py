@@ -35,12 +35,12 @@ if __name__ == '__main__':
     if len(sys.argv) == 3:
         cfgfile = sys.argv[1]
         weightfile = sys.argv[2]
-        fransform_to_onnx(cfgfile, weightfile)
+        transform_to_onnx(cfgfile, weightfile)
     elif len(sys.argv) == 4:
         cfgfile = sys.argv[1]
         weightfile = sys.argv[2]
         batch_size = int(sys.argv[3])
-        fransform_to_onnx(cfgfile, weightfile, batch_size)
+        transform_to_onnx(cfgfile, weightfile, batch_size)
     else:
         print('Please execute this script this way:\n')
         print('  python darknet2onnx.py <cfgFile> <weightFile>')

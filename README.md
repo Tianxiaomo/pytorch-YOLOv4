@@ -38,7 +38,7 @@ A minimal PyTorch implementation of YOLOv4.
 
 ![image](https://user-gold-cdn.xitu.io/2020/4/26/171b5a6c8b3bd513?w=768&h=576&f=jpeg&s=78882)
 
-# 0. Weight
+# 0. Weights Download
 
 ## 0.1 darkent
 - baidu(https://pan.baidu.com/s/1dAGEW8cm-dqK14TbhhVetA     Extraction code:dm5b)
@@ -77,10 +77,19 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     ```
 
 # 2. Inference
-- download model weight https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT
+
+- Load the pretrained darknet model and darknet weights to do the inference
+
+```sh
+python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
 ```
-python demo.py <cfgFile> <weightFile> <imgFile>
+
+- Load pytorch weights (pth file) to do the inference
+
+```sh
+python models.py <num_classes> <weightfile> <imgfile> <namefile(optional)>
 ```
+
 
 # 3. Darknet2ONNX (Evolving)
 
