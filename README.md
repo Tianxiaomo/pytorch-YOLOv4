@@ -16,16 +16,16 @@ A minimal PyTorch implementation of YOLOv4.
 
 ```
 ├── README.md
-├── dataset.py       dataset
-├── demo.py          demo to run pytorch --> tool/darknet2pytorch
-├── darknet2onnx.py  tool to convert into onnx --> tool/darknet2pytorch
-├── demo_onnx.py     demo to run the converted onnx model
-├── models.py        model for pytorch
-├── train.py         train models.py
-├── cfg.py           cfg.py for train
-├── cfg              cfg --> darknet2pytorch
+├── dataset.py            dataset
+├── demo.py               demo to run pytorch --> tool/darknet2pytorch
+├── demo_darknet2onnx.py  tool to convert into onnx --> tool/darknet2pytorch
+├── demo_pytorch2onnx.py  tool to convert into onnx
+├── models.py             model for pytorch
+├── train.py              train models.py
+├── cfg.py                cfg.py for train
+├── cfg                   cfg --> darknet2pytorch
 ├── data            
-├── weight           --> darknet2pytorch
+├── weight                --> darknet2pytorch
 ├── tool
 │   ├── camera.py           a demo camera
 │   ├── coco_annotatin.py       coco dataset generator
@@ -93,6 +93,8 @@ python models.py <num_classes> <weightfile> <imgfile> <namefile(optional)>
 
 # 3. Darknet2ONNX (Evolving)
 
+- **This script is to convert the official pretrained darknet model into ONNX**
+
 - **Pytorch version Recommended: 1.4.0**
 
 - **Install onnxruntime**
@@ -104,7 +106,7 @@ python models.py <num_classes> <weightfile> <imgfile> <namefile(optional)>
 - **Run python script to generate onnx model and run the demo**
 
     ```sh
-    python demo_onnx.py <cfgFile> <weightFile> <imageFile> <batchSize>
+    python demo_darknet2onnx.py <cfgFile> <weightFile> <imageFile> <batchSize>
     ```
 
   This script will generate 2 onnx models.
@@ -112,7 +114,37 @@ python models.py <num_classes> <weightfile> <imgfile> <namefile(optional)>
   - One is for running the demo (batch_size=1)
   - The other one is what you want to generate (batch_size=batchSize)
 
-# 4. ONNX2TensorRT (Evolving)
+# 4. Pytorch2ONNX (Evolving)
+
+- **You can convert your trained pytorch model into ONNX using this script**
+
+- **Pytorch version Recommended: 1.4.0**
+
+- **Install onnxruntime**
+
+    ```sh
+    pip install onnxruntime
+    ```
+
+- **Run python script to generate onnx model and run the demo**
+
+    ```sh
+    python demo_pytorch2onnx.py <weight_file> <image_path> <batch_size> <n_classes> <IN_IMAGE_H> <IN_IMAGE_W>
+    ```
+
+    For example:
+
+    ```sh
+    python demo_pytorch2onnx.py yolov4.pth dog.jpg 8 80 416 416
+    ```
+
+  This script will generate 2 onnx models.
+
+  - One is for running the demo (batch_size=1)
+  - The other one is what you want to generate (batch_size=batch_size)
+
+
+# 5. ONNX2TensorRT (Evolving)
 
 - **TensorRT version Recommended: 7.0, 7.1**
 
@@ -132,7 +164,7 @@ python models.py <num_classes> <weightfile> <imgfile> <namefile(optional)>
     - Note2: extra NMS operations are needed for the tensorRT output. This demo uses TianXiaomo's NMS code from `tool/utils.py`.
 
 
-# 5. ONNX2Tensorflow
+# 6. ONNX2Tensorflow
 
 - **First:Conversion to ONNX**
 
