@@ -115,7 +115,21 @@ def main(engine_path, image_path, image_size):
         buffers = allocate_buffers(engine)
         image_src = cv2.imread(image_path)
 
-        detect(engine, context, buffers, image_src, image_size)
+        num_classes = 80
+
+        for i in range(2):  # This 'for' loop is for speed check
+                            # Because the first iteration is usually longer
+            boxes = detect(engine, context, buffers, image_src, image_size, num_classes)
+
+        if num_classes == 20:
+            namesfile = 'data/voc.names'
+        elif num_classes == 80:
+            namesfile = 'data/coco.names'
+        else:
+            namesfile = 'data/names'
+
+        class_names = load_class_names(namesfile)
+        plot_boxes_cv2(image_src, boxes[0], savename='predictions_trt.jpg', class_names=class_names)
 
 
 def get_engine(engine_path):
@@ -126,7 +140,7 @@ def get_engine(engine_path):
 
 
 
-def detect(engine, context, buffers, image_src, image_size):
+def detect(engine, context, buffers, image_src, image_size, num_classes):
     IN_IMAGE_H, IN_IMAGE_W = image_size
 
     ta = time.time()
@@ -148,34 +162,19 @@ def detect(engine, context, buffers, image_src, image_size):
 
     print('Len of outputs: ', len(trt_outputs))
 
-    # print(outputs[2])
-    print(trt_outputs[0].shape)
-    print(trt_outputs[1].shape)
-    print(trt_outputs[2].shape)
-
-    trt_outputs = [
-            trt_outputs[0].reshape(1, -1, 4),
-            trt_outputs[1].reshape(1, -1),
-            trt_outputs[2].reshape(1, -1)]
+    trt_output = trt_outputs[0].reshape(1, -1, 4 + num_classes)
 
     tb = time.time()
+
+    print(trt_output.shape)
 
     print('-----------------------------------')
     print('    TRT inference time: %f' % (tb - ta))
     print('-----------------------------------')
 
-    boxes = post_processing(img_in, 0.4, 0.4, trt_outputs)
+    boxes = post_processing(img_in, 0.4, 0.6, trt_output)
 
-    num_classes = 80
-    if num_classes == 20:
-        namesfile = 'data/voc.names'
-    elif num_classes == 80:
-        namesfile = 'data/coco.names'
-    else:
-        namesfile = 'data/names'
-
-    class_names = load_class_names(namesfile)
-    plot_boxes_cv2(image_src, boxes, savename='predictions_trt.jpg', class_names=class_names)
+    return boxes
 
 
 

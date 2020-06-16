@@ -48,12 +48,12 @@ def detect_cv2(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.4, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.4, 0.6, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
 
-    plot_boxes_cv2(img, boxes, savename='predictions.jpg', class_names=class_names)
+    plot_boxes_cv2(img, boxes[0], savename='predictions.jpg', class_names=class_names)
 
 
 def detect_cv2_camera(cfgfile, weightfile):
@@ -88,11 +88,11 @@ def detect_cv2_camera(cfgfile, weightfile):
         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
         start = time.time()
-        boxes = do_detect(m, sized, 0.4, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.4, 0.6, use_cuda)
         finish = time.time()
         print('Predicted in %f seconds.' % (finish - start))
 
-        result_img = plot_boxes_cv2(img, boxes, savename=None, class_names=class_names)
+        result_img = plot_boxes_cv2(img, boxes[0], savename=None, class_names=class_names)
 
         cv2.imshow('Yolo demo', result_img)
         cv2.waitKey(1)

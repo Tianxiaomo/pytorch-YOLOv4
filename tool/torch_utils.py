@@ -45,33 +45,9 @@ def bbox_ious(boxes1, boxes2, x1y1x2y2=True):
     return carea / uarea
 
 
-def nms(boxes, nms_thresh):
-    if len(boxes) == 0:
-        return boxes
-
-    det_confs = torch.zeros(len(boxes))
-    for i in range(len(boxes)):
-        det_confs[i] = 1 - boxes[i][4]
-
-    _, sortIds = torch.sort(det_confs)
-    out_boxes = []
-    for i in range(len(boxes)):
-        box_i = boxes[sortIds[i]]
-        if box_i[4] > 0:
-            out_boxes.append(box_i)
-            for j in range(i + 1, len(boxes)):
-                box_j = boxes[sortIds[j]]
-                if bbox_iou(box_i, box_j, x1y1x2y2=False) > nms_thresh:
-                    # print(box_i, box_j, bbox_iou(box_i, box_j, x1y1x2y2=False))
-                    box_j[4] = 0
-    return out_boxes
-
-
 def get_region_boxes(boxes_and_confs):
 
-    print('Getting boxes from boxes and confs ...')
-
-    t1 = time.time()
+    # print('Getting boxes from boxes and confs ...')
 
     boxes_list = []
     confs_list = []
@@ -84,59 +60,10 @@ def get_region_boxes(boxes_and_confs):
     # confs: [batch, num1 + num2 + num3, num_classes]
     boxes = torch.cat(boxes_list, dim=1)
     confs = torch.cat(confs_list, dim=1)
+
+    output = torch.cat((boxes, confs), dim=2)
         
-    # [batch, num, num_classes] --> [batch, num]
-    max_confs, max_ids = torch.max(confs, dim=2)
-
-    t2 = time.time()
-
-    if False:
-        print('---------------------------------')
-        print('              boxes: %f' % (t2 - t1))
-        print('---------------------------------')
-    
-    # boxes:     [batch, num, 4]
-    # max_confs: [batch, num]
-    # max_ids:   [batch, num]
-    return boxes, max_confs, max_ids
-
-
-
-def nms_new(boxes, scores, _keep, overlap_threshold=0.5, min_mode=False):
-    x1 = boxes[:, 0]
-    y1 = boxes[:, 1]
-    x2 = boxes[:, 0] + boxes[:, 2]
-    y2 = boxes[:, 1] + boxes[:, 3]
-
-    scores = boxes[:, 4]
-
-    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
-    _, order = scores.sort(dim=0, descending=True)
-    cnt = 0
-
-    while order.size()[0] > 1 and cnt < _keep.shape[0]:
-        _keep[cnt] = order[0]
-        cnt += 1
-        xx1 = torch.max(x1[order[0]], x1[order[1:]])
-        yy1 = torch.max(y1[order[0]], y1[order[1:]])
-        xx2 = torch.min(x2[order[0]], x2[order[1:]])
-        yy2 = torch.min(y2[order[0]], y2[order[1:]])
-
-        w = torch.clamp(xx2-xx1, min=0)
-        h = torch.clamp(yy2-yy1, min=0)
-        inter = w * h
-        if min_mode:
-            ovr = inter / torch.min(areas[order[0]], areas[order[1:]])
-        else:
-            ovr = inter / (areas[order[0]] + areas[order[1:]] - inter)
-
-        inds = torch.nonzero(ovr <= overlap_threshold).squeeze()
-        if inds.dim():
-            order = order[inds + 1]
-        else:
-            break
-
-    return _keep[:cnt]
+    return output
 
 
 def convert2cpu(gpu_matrix):
@@ -171,8 +98,8 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
     t2 = time.time()
 
     print('-----------------------------------')
-    print('          Preprocess : %f' % (t1 - t0))
-    print('     Model Inference : %f' % (t2 - t1))
+    print('           Preprocess : %f' % (t1 - t0))
+    print('      Model Inference : %f' % (t2 - t1))
     print('-----------------------------------')
 
     return utils.post_processing(img, conf_thresh, nms_thresh, output)

@@ -58,63 +58,7 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
     return carea / uarea
 
 
-
-def get_region_boxes(boxes, confs, conf_thresh):
-
-    print('Getting boxes from boxes and confs ...')
-    ########################################
-    #   Figure out bboxes from slices     #
-    ########################################
-
-    # boxes: [batch, num_anchors * H * W, 4]
-    # confs: [batch, num_anchors * H * W, num_classes]
-
-    t1 = time.time()
-    all_boxes = []
-    for b in range(boxes.shape[0]):
-        l_boxes = []
-
-        # [num_anchors * H * W, num_classes] --> [num_anchors * H * W]
-        max_conf = confs[b, :, :].max(axis=1)
-        # [num_anchors * H * W, num_classes] --> [num_anchors * H * W]
-        max_id = confs[b, :, :].argmax(axis=1)
-
-        argwhere = np.argwhere(max_conf > conf_thresh)
-
-        max_conf = max_conf[argwhere].flatten()
-        max_id = max_id[argwhere].flatten()
-
-        # print(max_conf)
-        # print(max_id)
-
-        bcx = boxes[b, argwhere, 0]
-        bcy = boxes[b, argwhere, 1]
-        bw = boxes[b, argwhere, 2]
-        bh = boxes[b, argwhere, 3]
-
-        # print(bcy)
-
-        for i in range(bcx.shape[0]):
-            # print(max_cls_conf[i])
-            # print('bbox: [ {},\t{},\t{},\t{} ]'.format(bcx[i], bcy[i], bw[i], bh[i]))
-
-            l_box = [bcx[i], bcy[i], bw[i], bh[i], max_conf[i], max_conf[i], max_id[i]]
-            l_boxes.append(l_box)
-
-        all_boxes.append(l_boxes)
-    t2 = time.time()
-
-    if False:
-        print('---------------------------------')
-        print('              boxes: %f' % (t2 - t1))
-        print('---------------------------------')
-    
-    
-    return all_boxes
-
-
-
-def nms(boxes, nms_thresh):
+def nms_old(boxes, nms_thresh):
     if len(boxes) == 0:
         return boxes
 
@@ -136,6 +80,43 @@ def nms(boxes, nms_thresh):
                     box_j[4] = 0
     
     return out_boxes
+
+
+def nms_cpu(boxes, confs, nms_thresh=0.5, min_mode=False):
+    # print(boxes.shape)
+    x1 = boxes[:, 0]
+    y1 = boxes[:, 1]
+    x2 = boxes[:, 0] + boxes[:, 2]
+    y2 = boxes[:, 1] + boxes[:, 3]
+
+    areas = (x2 - x1) * (y2 - y1)
+    order = confs.argsort()[::-1]
+
+    keep = []
+    while order.size > 0:
+        idx_self = order[0]
+        idx_other = order[1:]
+
+        keep.append(idx_self)
+
+        xx1 = np.maximum(x1[idx_self], x1[idx_other])
+        yy1 = np.maximum(y1[idx_self], y1[idx_other])
+        xx2 = np.minimum(x2[idx_self], x2[idx_other])
+        yy2 = np.minimum(y2[idx_self], y2[idx_other])
+
+        w = np.maximum(0.0, xx2 - xx1)
+        h = np.maximum(0.0, yy2 - yy1)
+        inter = w * h
+
+        if min_mode:
+            over = inter / np.minimum(areas[order[0]], areas[order[1:]])
+        else:
+            over = inter / (areas[order[0]] + areas[order[1:]] - inter)
+
+        inds = np.where(over <= nms_thresh)[0]
+        order = order[inds + 1]
+    
+    return np.array(keep)
 
 
 
@@ -204,40 +185,6 @@ def load_class_names(namesfile):
     return class_names
 
 
-def post_processing_old(img, conf_thresh, n_classes, nms_thresh, output):
-
-    # anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
-    # num_anchors = 9
-    # anchor_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-    # strides = [8, 16, 32]
-    # anchor_step = len(anchors) // num_anchors
-
-    boxes = []  
-    t1 = time.time()
-    for i in range(len(output)):
-        boxes.append(get_region_boxes(output[i][0], output[i][1], conf_thresh))
-    t2 = time.time()
-
-    if img.shape[0] > 1:
-        bboxs_for_imgs = [
-            boxes[0][index] + boxes[1][index] + boxes[2][index]
-            for index in range(img.shape[0])]
-        # 分别对每一张图片的结果进行nms
-        t3 = time.time()
-        boxes = [nms(bboxs, nms_thresh) for bboxs in bboxs_for_imgs]
-    else:
-        boxes = boxes[0][0] + boxes[1][0] + boxes[2][0]
-        t3 = time.time()
-        boxes = nms(boxes, nms_thresh)
-    t4 = time.time()
-
-    print('-----------------------------------')
-    print('     get_region_boxes : %f' % (t2 - t1))
-    print('                  nms : %f' % (t4 - t3))
-    print('   post process total : %f' % (t4 - t1))
-    print('-----------------------------------')
-    return boxes
-
 
 def post_processing(img, conf_thresh, nms_thresh, output):
 
@@ -247,21 +194,24 @@ def post_processing(img, conf_thresh, nms_thresh, output):
     # strides = [8, 16, 32]
     # anchor_step = len(anchors) // num_anchors
 
-    # [bcx[i], bcy[i], bw[i], bh[i], max_conf[i], max_conf[i], max_id[i]]
-
     t1 = time.time()
-    box_array, max_conf, max_id = output
 
-    # print(box_array)
-    # print(max_conf)
-    # print(max_id)
+    if type(output).__name__ != 'ndarray':
+        output = output.cpu().detach().numpy()
 
-    if type(box_array).__name__ != 'ndarray':
-        box_array = box_array.cpu().detach().numpy()
-        max_conf = max_conf.cpu().detach().numpy()
-        max_id = max_id.cpu().detach().numpy()
+    # [batch, num, 4]
+    box_array = output[:, :, :4]
 
-    boxes = []
+    # [batch, num, num_classes]
+    confs = output[:, :, 4:]
+
+    # [batch, num, num_classes] --> [batch, num]
+    max_conf = np.max(confs, axis=2)
+    max_id = np.argmax(confs, axis=2)
+
+    t2 = time.time()
+
+    bboxes_batch = []
     for i in range(box_array.shape[0]):
        
         argwhere = max_conf[i] > conf_thresh
@@ -269,27 +219,24 @@ def post_processing(img, conf_thresh, nms_thresh, output):
         l_max_conf = max_conf[i, argwhere]
         l_max_id = max_id[i, argwhere]
 
-        l_boxes = []
+        keep = nms_cpu(l_box_array, l_max_conf, nms_thresh)
+
+        l_box_array = l_box_array[keep, :]
+        l_max_conf = l_max_conf[keep]
+        l_max_id = l_max_id[keep]
+
+        bboxes = []
         for j in range(l_box_array.shape[0]):
-            l_boxes.append([l_box_array[j, 0], l_box_array[j, 1], l_box_array[j, 2], l_box_array[j, 3], l_max_conf[j], l_max_conf[j], l_max_id[j]])
+            bboxes.append([l_box_array[j, 0], l_box_array[j, 1], l_box_array[j, 2], l_box_array[j, 3], l_max_conf[j], l_max_conf[j], l_max_id[j]])
+        
+        bboxes_batch.append(bboxes)
 
-        boxes.append(l_boxes)
-
-    t2 = time.time()
-
-    if img.shape[0] > 1:
-        bboxs_for_imgs = [boxes[index] for index in range(img.shape[0])]
-        # 分别对每一张图片的结果进行nms
-        t3 = time.time()
-        bboxes = [nms(bboxs, nms_thresh) for bboxs in bboxs_for_imgs]
-    else:
-        t3 = time.time()
-        bboxes = nms(boxes[0], nms_thresh)
-    t4 = time.time()
+    t3 = time.time()
 
     print('-----------------------------------')
-    print('          solve_boxes : %f' % (t2 - t1))
-    print('                  nms : %f' % (t4 - t3))
-    print('   post process total : %f' % (t4 - t1))
+    print('       max and argmax : %f' % (t2 - t1))
+    print('                  nms : %f' % (t3 - t2))
+    print('Post processing total : %f' % (t3 - t1))
     print('-----------------------------------')
-    return bboxes
+    
+    return bboxes_batch

@@ -470,14 +470,6 @@ if __name__ == "__main__":
     pretrained_dict = torch.load(weightfile, map_location=torch.device('cuda'))
     model.load_state_dict(pretrained_dict)
 
-    if namesfile == None:
-        if n_classes == 20:
-            namesfile = 'data/voc.names'
-        elif n_classes == 80:
-            namesfile = 'data/coco.names'
-        else:
-            print("please give namefile")
-
     use_cuda = True
     if use_cuda:
         model.cuda()
@@ -492,7 +484,17 @@ if __name__ == "__main__":
     from tool.utils import load_class_names, plot_boxes_cv2
     from tool.torch_utils import do_detect
 
-    boxes = do_detect(model, sized, 0.4, 0.4, use_cuda)
+    for i in range(2):  # This 'for' loop is for speed check
+                        # Because the first iteration is usually longer
+        boxes = do_detect(model, sized, 0.4, 0.6, use_cuda)
+
+    if namesfile == None:
+        if n_classes == 20:
+            namesfile = 'data/voc.names'
+        elif n_classes == 80:
+            namesfile = 'data/coco.names'
+        else:
+            print("please give namefile")
 
     class_names = load_class_names(namesfile)
-    plot_boxes_cv2(img, boxes, 'predictions.jpg', class_names)
+    plot_boxes_cv2(img, boxes[0], 'predictions.jpg', class_names)
