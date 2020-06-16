@@ -46,27 +46,11 @@ def detect(session, image_src):
 
     outputs = session.run(None, {input_name: img_in})
 
-    '''
-    print(len(outputs))
-    print(outputs[0].shape)
-    print(outputs[1].shape)
-    print(outputs[2].shape)
-    print(outputs[3].shape)
-    print(outputs[4].shape)
-    print(outputs[5].shape)
-    '''
+    outputs = [ outputs[0], outputs[1], outputs[2] ]
 
-    outputs = [
-        [outputs[0],outputs[1]],
-        [outputs[2],outputs[3]],
-        [outputs[4],outputs[5]]
-    ]
-
-    # print(outputs[2])
+    boxes = post_processing(img_in, 0.4, 0.4, outputs)
 
     num_classes = 80
-    boxes = post_processing(img_in, 0.5, num_classes, 0.4, outputs)
-
     if num_classes == 20:
         namesfile = 'data/voc.names'
     elif num_classes == 80:

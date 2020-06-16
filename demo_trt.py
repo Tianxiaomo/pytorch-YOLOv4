@@ -147,70 +147,16 @@ def detect(engine, context, buffers, image_src, image_size):
     trt_outputs = do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
 
     print('Len of outputs: ', len(trt_outputs))
-    # print(trt_outputs)
-    '''
-    print('Shape of outputs: ')
+
+    # print(outputs[2])
     print(trt_outputs[0].shape)
     print(trt_outputs[1].shape)
     print(trt_outputs[2].shape)
 
-    trt_outputs[0] = trt_outputs[0].reshape(-1, 255, IN_IMAGE_H // 8, IN_IMAGE_W // 8)
-    trt_outputs[1] = trt_outputs[1].reshape(-1, 255, IN_IMAGE_H // 16, IN_IMAGE_W // 16)
-    trt_outputs[2] = trt_outputs[2].reshape(-1, 255, IN_IMAGE_H // 32, IN_IMAGE_W // 32)
-    '''
-    '''
-    print(trt_outputs[0])
-    print(trt_outputs[1])
-    print(trt_outputs[2])
-    print(trt_outputs[3])
-    print(trt_outputs[4])
-    print(trt_outputs[5])
-    '''
-
-    h1 = IN_IMAGE_H // 8
-    w1 = IN_IMAGE_W // 8
-    h2 = IN_IMAGE_H // 16
-    w2 = IN_IMAGE_W // 16
-    h3 = IN_IMAGE_H // 32
-    w3 = IN_IMAGE_W // 32
-
-
     trt_outputs = [
-        [
-            trt_outputs[0],
-            trt_outputs[1]
-        ],
-        [
-            trt_outputs[2],
-            trt_outputs[3]
-        ],
-        [
-            trt_outputs[4],
-            trt_outputs[5]
-        ]
-    ]
-
-    trt_outputs[0].sort(key=len)
-    trt_outputs[1].sort(key=len)
-    trt_outputs[2].sort(key=len)
-
-    # print(outputs[2])
-    num_classes = 80
-
-    trt_outputs = [
-        [
-            trt_outputs[0][1].reshape(-1, 3 * h1 * w1, num_classes, 4),
-            trt_outputs[0][0].reshape(-1, 3 * h1 * w1, num_classes)
-        ],
-        [
-            trt_outputs[1][1].reshape(-1, 3 * h2 * w2, num_classes, 4),
-            trt_outputs[1][0].reshape(-1, 3 * h2 * w2, num_classes)
-        ],
-        [
-            trt_outputs[2][1].reshape(-1, 3 * h3 * w3, num_classes, 4),
-            trt_outputs[2][0].reshape(-1, 3 * h3 * w3, num_classes)
-        ]
-    ]
+            trt_outputs[0].reshape(1, -1, 4),
+            trt_outputs[1].reshape(1, -1),
+            trt_outputs[2].reshape(1, -1)]
 
     tb = time.time()
 
@@ -218,8 +164,9 @@ def detect(engine, context, buffers, image_src, image_size):
     print('    TRT inference time: %f' % (tb - ta))
     print('-----------------------------------')
 
-    boxes = post_processing(img_in, 0.5, num_classes, 0.4, trt_outputs)
+    boxes = post_processing(img_in, 0.4, 0.4, trt_outputs)
 
+    num_classes = 80
     if num_classes == 20:
         namesfile = 'data/voc.names'
     elif num_classes == 80:
