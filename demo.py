@@ -21,14 +21,6 @@ import argparse
 
 """hyper parameters"""
 use_cuda = True
-num_classes = 80
-if num_classes == 20:
-    namesfile = 'data/voc.names'
-elif num_classes == 80:
-    namesfile = 'data/coco.names'
-else:
-    namesfile = 'data/x.names'
-
 
 def detect_cv2(cfgfile, weightfile, imgfile):
     import cv2
@@ -41,18 +33,26 @@ def detect_cv2(cfgfile, weightfile, imgfile):
     if use_cuda:
         m.cuda()
 
+    num_classes = m.num_classes
+    if num_classes == 20:
+        namesfile = 'data/voc.names'
+    elif num_classes == 80:
+        namesfile = 'data/coco.names'
+    else:
+        namesfile = 'data/x.names'
+    class_names = load_class_names(namesfile)
+
     img = cv2.imread(imgfile)
     sized = cv2.resize(img, (m.width, m.height))
     sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, num_classes, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.4, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
 
-    class_names = load_class_names(namesfile)
     plot_boxes_cv2(img, boxes, savename='predictions.jpg', class_names=class_names)
 
 
@@ -73,17 +73,25 @@ def detect_cv2_camera(cfgfile, weightfile):
     cap.set(4, 720)
     print("Starting the YOLO loop...")
 
+    num_classes = m.num_classes
+    if num_classes == 20:
+        namesfile = 'data/voc.names'
+    elif num_classes == 80:
+        namesfile = 'data/coco.names'
+    else:
+        namesfile = 'data/x.names'
+    class_names = load_class_names(namesfile)
+
     while True:
         ret, img = cap.read()
         sized = cv2.resize(img, (m.width, m.height))
         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, num_classes, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.4, 0.4, use_cuda)
         finish = time.time()
         print('Predicted in %f seconds.' % (finish - start))
 
-        class_names = load_class_names(namesfile)
         result_img = plot_boxes_cv2(img, boxes, savename=None, class_names=class_names)
 
         cv2.imshow('Yolo demo', result_img)
@@ -104,17 +112,25 @@ def detect_skimage(cfgfile, weightfile, imgfile):
     if use_cuda:
         m.cuda()
 
+    num_classes = m.num_classes
+    if num_classes == 20:
+        namesfile = 'data/voc.names'
+    elif num_classes == 80:
+        namesfile = 'data/coco.names'
+    else:
+        namesfile = 'data/x.names'
+    class_names = load_class_names(namesfile)
+
     img = io.imread(imgfile)
     sized = resize(img, (m.width, m.height)) * 255
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.5, m.num_classes, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.4, 0.4, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
 
-    class_names = load_class_names(namesfile)
     plot_boxes_cv2(img, boxes, savename='predictions.jpg', class_names=class_names)
 
 

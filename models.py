@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from tool.torch_utils import *
 from tool.yolo_layer import YoloLayer
 
 
@@ -396,7 +397,7 @@ class Yolov4Head(nn.Module):
             y2 = self.yolo2(x10)
             y3 = self.yolo3(x18)
 
-            return [y1, y2, y3]
+            return get_region_boxes([y1, y2, y3])
         
         else:
             return [x2, x10, x18]
@@ -464,7 +465,7 @@ if __name__ == "__main__":
         print('Usage: ')
         print('  python models.py num_classes weightfile imgfile namefile')
 
-    model = Yolov4(n_classes=n_classes, inference=True)
+    model = Yolov4(yolov4conv137weight=None, n_classes=n_classes, inference=True)
 
     pretrained_dict = torch.load(weightfile, map_location=torch.device('cuda'))
     model.load_state_dict(pretrained_dict)
@@ -482,13 +483,16 @@ if __name__ == "__main__":
         model.cuda()
 
     img = cv2.imread(imgfile)
-    sized = cv2.resize(img, (608, 608))
+
+    # Inference input size is 416*416 does not mean training size is the same
+    # Training size could be 608*608 or even other sizes
+    sized = cv2.resize(img, (416, 416))
     sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
     from tool.utils import load_class_names, plot_boxes_cv2
     from tool.torch_utils import do_detect
 
-    boxes = do_detect(model, sized, 0.5, n_classes, 0.4, use_cuda)
+    boxes = do_detect(model, sized, 0.4, 0.4, use_cuda)
 
     class_names = load_class_names(namesfile)
     plot_boxes_cv2(img, boxes, 'predictions.jpg', class_names)

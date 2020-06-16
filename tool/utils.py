@@ -66,11 +66,8 @@ def get_region_boxes(boxes, confs, conf_thresh):
     #   Figure out bboxes from slices     #
     ########################################
 
-    # boxes: [batch, num_anchors * H * W, num_classes, 4]
+    # boxes: [batch, num_anchors * H * W, 4]
     # confs: [batch, num_anchors * H * W, num_classes]
-
-    # [batch, num_anchors * H * W, num_classes, 4] --> [batch, num_anchors * H * W, 4]
-    boxes = boxes[:, :, 0, :]
 
     t1 = time.time()
     all_boxes = []
@@ -207,7 +204,7 @@ def load_class_names(namesfile):
     return class_names
 
 
-def post_processing(img, conf_thresh, n_classes, nms_thresh, output):
+def post_processing_old(img, conf_thresh, n_classes, nms_thresh, output):
 
     # anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
     # num_anchors = 9
@@ -240,3 +237,59 @@ def post_processing(img, conf_thresh, n_classes, nms_thresh, output):
     print('   post process total : %f' % (t4 - t1))
     print('-----------------------------------')
     return boxes
+
+
+def post_processing(img, conf_thresh, nms_thresh, output):
+
+    # anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
+    # num_anchors = 9
+    # anchor_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+    # strides = [8, 16, 32]
+    # anchor_step = len(anchors) // num_anchors
+
+    # [bcx[i], bcy[i], bw[i], bh[i], max_conf[i], max_conf[i], max_id[i]]
+
+    t1 = time.time()
+    box_array, max_conf, max_id = output
+
+    # print(box_array)
+    # print(max_conf)
+    # print(max_id)
+
+    if type(box_array).__name__ != 'ndarray':
+        box_array = box_array.cpu().detach().numpy()
+        max_conf = max_conf.cpu().detach().numpy()
+        max_id = max_id.cpu().detach().numpy()
+
+    boxes = []
+    for i in range(box_array.shape[0]):
+       
+        argwhere = max_conf[i] > conf_thresh
+        l_box_array = box_array[i, argwhere, :]
+        l_max_conf = max_conf[i, argwhere]
+        l_max_id = max_id[i, argwhere]
+
+        l_boxes = []
+        for j in range(l_box_array.shape[0]):
+            l_boxes.append([l_box_array[j, 0], l_box_array[j, 1], l_box_array[j, 2], l_box_array[j, 3], l_max_conf[j], l_max_conf[j], l_max_id[j]])
+
+        boxes.append(l_boxes)
+
+    t2 = time.time()
+
+    if img.shape[0] > 1:
+        bboxs_for_imgs = [boxes[index] for index in range(img.shape[0])]
+        # 分别对每一张图片的结果进行nms
+        t3 = time.time()
+        bboxes = [nms(bboxs, nms_thresh) for bboxs in bboxs_for_imgs]
+    else:
+        t3 = time.time()
+        bboxes = nms(boxes[0], nms_thresh)
+    t4 = time.time()
+
+    print('-----------------------------------')
+    print('          solve_boxes : %f' % (t2 - t1))
+    print('                  nms : %f' % (t4 - t3))
+    print('   post process total : %f' % (t4 - t1))
+    print('-----------------------------------')
+    return bboxes
