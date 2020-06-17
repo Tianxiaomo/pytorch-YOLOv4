@@ -220,14 +220,15 @@ def post_processing(img, conf_thresh, nms_thresh, output):
         l_max_id = max_id[i, argwhere]
 
         keep = nms_cpu(l_box_array, l_max_conf, nms_thresh)
-
-        l_box_array = l_box_array[keep, :]
-        l_max_conf = l_max_conf[keep]
-        l_max_id = l_max_id[keep]
-
+        
         bboxes = []
-        for j in range(l_box_array.shape[0]):
-            bboxes.append([l_box_array[j, 0], l_box_array[j, 1], l_box_array[j, 2], l_box_array[j, 3], l_max_conf[j], l_max_conf[j], l_max_id[j]])
+        if (keep.size > 0):
+            l_box_array = l_box_array[keep, :]
+            l_max_conf = l_max_conf[keep]
+            l_max_id = l_max_id[keep]
+
+            for j in range(l_box_array.shape[0]):
+                bboxes.append([l_box_array[j, 0], l_box_array[j, 1], l_box_array[j, 2], l_box_array[j, 3], l_max_conf[j], l_max_conf[j], l_max_id[j]])
         
         bboxes_batch.append(bboxes)
 

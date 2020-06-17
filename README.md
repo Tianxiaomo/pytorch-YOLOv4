@@ -90,6 +90,17 @@ python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
 python models.py <num_classes> <weightfile> <imgfile> <namefile(optional)>
 ```
 
+- Image input size for inference
+
+    Image input size is NOT restricted in 320, 416, 512 and 608.
+    You can adjust your input sizes for a different input ratio, for example: `320 * 608`.
+    Larger input size could help detect smaller targets, but may be slower and may occupy more GPU memory.
+
+    ```py
+    height = 320 + 96 * n, n in {0, 1, 2, 3, ...}
+    width  = 320 + 96 * m, m in {0, 1, 2, 3, ...}
+    ```
+
 
 # 3. Darknet2ONNX (Evolving)
 

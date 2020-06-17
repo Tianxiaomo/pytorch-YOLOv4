@@ -318,7 +318,7 @@ class Neck(nn.Module):
 
 
 class Yolov4Head(nn.Module):
-    def __init__(self, output_ch, inference=False):
+    def __init__(self, output_ch, n_classes, inference=False):
         super().__init__()
         self.inference = inference
 
@@ -326,7 +326,7 @@ class Yolov4Head(nn.Module):
         self.conv2 = Conv_Bn_Activation(256, output_ch, 1, 1, 'linear', bn=False, bias=True)
 
         self.yolo1 = YoloLayer(
-                                anchor_mask=[0, 1, 2], num_classes=80,
+                                anchor_mask=[0, 1, 2], num_classes=n_classes,
                                 anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
                                 num_anchors=9, stride=8)
 
@@ -343,7 +343,7 @@ class Yolov4Head(nn.Module):
         self.conv10 = Conv_Bn_Activation(512, output_ch, 1, 1, 'linear', bn=False, bias=True)
         
         self.yolo2 = YoloLayer(
-                                anchor_mask=[3, 4, 5], num_classes=80,
+                                anchor_mask=[3, 4, 5], num_classes=n_classes,
                                 anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
                                 num_anchors=9, stride=16)
 
@@ -360,7 +360,7 @@ class Yolov4Head(nn.Module):
         self.conv18 = Conv_Bn_Activation(1024, output_ch, 1, 1, 'linear', bn=False, bias=True)
         
         self.yolo3 = YoloLayer(
-                                anchor_mask=[6, 7, 8], num_classes=80,
+                                anchor_mask=[6, 7, 8], num_classes=n_classes,
                                 anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
                                 num_anchors=9, stride=32)
 
@@ -431,7 +431,7 @@ class Yolov4(nn.Module):
             _model.load_state_dict(model_dict)
         
         # head
-        self.head = Yolov4Head(output_ch, inference)
+        self.head = Yolov4Head(output_ch, n_classes, inference)
 
 
     def forward(self, input):
@@ -478,7 +478,10 @@ if __name__ == "__main__":
 
     # Inference input size is 416*416 does not mean training size is the same
     # Training size could be 608*608 or even other sizes
-    sized = cv2.resize(img, (416, 416))
+    # Optional inference sizes:
+    #   Hight in {320, 416, 512, 608, ... 320 + 96 * n}
+    #   Width in {320, 416, 512, 608, ... 320 + 96 * m}
+    sized = cv2.resize(img, (320 + 96 * 3, 320 + 96))
     sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
     from tool.utils import load_class_names, plot_boxes_cv2
