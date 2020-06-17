@@ -127,13 +127,13 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     pip install onnxruntime
     ```
 
-- **Run python script to generate onnx model and run the demo**
+- **Run python script to generate ONNX model and run the demo**
 
     ```sh
     python demo_darknet2onnx.py <cfgFile> <weightFile> <imageFile> <batchSize>
     ```
 
-  This script will generate 2 onnx models.
+  This script will generate 2 ONNX models.
 
   - One is for running the demo (batch_size=1)
   - The other one is what you want to generate (batch_size=batchSize)
@@ -150,7 +150,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     pip install onnxruntime
     ```
 
-- **Run python script to generate onnx model and run the demo**
+- **Run python script to generate ONNX model and run the demo**
 
     ```sh
     python demo_pytorch2onnx.py <weight_file> <image_path> <batch_size> <n_classes> <IN_IMAGE_H> <IN_IMAGE_W>
@@ -162,7 +162,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     python demo_pytorch2onnx.py yolov4.pth dog.jpg 8 80 416 416
     ```
 
-  This script will generate 2 onnx models.
+  This script will generate 2 ONNX models.
 
   - One is for running the demo (batch_size=1)
   - The other one is what you want to generate (batch_size=batch_size)
@@ -172,7 +172,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 - **TensorRT version Recommended: 7.0, 7.1**
 
-- **Run the following command to convert VOLOv4 onnx model into TensorRT engine**
+- **Run the following command to convert VOLOv4 ONNX model into TensorRT engine**
 
     ```sh
     trtexec --onnx=<onnx_file> --explicitBatch --saveEngine=<tensorRT_engine_file> --workspace=<size_in_megabytes> --fp16
@@ -184,8 +184,8 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     ```sh
     python demo_trt.py <tensorRT_engine_file> <input_image> <input_H> <input_W>
     ```
-    - Note1: input_H and input_W should agree with the input size in the original darknet cfg file as well as the latter onnx file.
-    - Note2: extra NMS operations are needed for the tensorRT output. This demo uses TianXiaomo's NMS code from `tool/utils.py`.
+    - Note1: input_H and input_W should agree with the input size in the original ONNX file.
+    - Note2: extra NMS operations are needed for the tensorRT output. This demo uses python NMS code from `tool/utils.py`.
 
 
 # 6. ONNX2Tensorflow
