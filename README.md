@@ -179,13 +179,19 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     ```
     - Note: If you want to use int8 mode in conversion, extra int8 calibration is needed.
 
-- **Run the demo (this demo here only works when batchSize=1)**
+- **Run the demo**
 
     ```sh
     python demo_trt.py <tensorRT_engine_file> <input_image> <input_H> <input_W>
     ```
+
+    - This demo here only works when batchSize=1, but you can update this demo a little for batched inputs.
+    
     - Note1: input_H and input_W should agree with the input size in the original ONNX file.
+    
     - Note2: extra NMS operations are needed for the tensorRT output. This demo uses python NMS code from `tool/utils.py`.
+
+    - Inference on X86 is verified to be okay for TensorRT 7.0, but output of the first iteration each time engine is loaded may be wrong on Jetson platforms. If you are using Jetpack 4.4 DP on Jetson platforms, try to ignore the first iteration each time as a workaround.
 
 
 # 6. ONNX2Tensorflow
