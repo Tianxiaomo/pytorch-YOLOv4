@@ -76,30 +76,37 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
      python train.py -g [GPU_ID] -dir [Dataset direction] ...
     ```
 
-# 2. Inference
-
-- Load the pretrained darknet model and darknet weights to do the inference
-
-```sh
-python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
-```
-
-- Load pytorch weights (pth file) to do the inference
-
-```sh
-python models.py <num_classes> <weightfile> <imgfile> <namefile(optional)>
-```
+# 2. Inference (Evolving)
 
 - Image input size for inference
 
-    Image input size is NOT restricted in 320, 416, 512 and 608.
+    Image input size is NOT restricted in `320 * 320`, `416 * 416`, `512 * 512` and `608 * 608`.
     You can adjust your input sizes for a different input ratio, for example: `320 * 608`.
-    Larger input size could help detect smaller targets, but may be slower and may occupy more GPU memory.
+    Larger input size could help detect smaller targets, but may be slower and GPU memory exhausting.
 
     ```py
     height = 320 + 96 * n, n in {0, 1, 2, 3, ...}
     width  = 320 + 96 * m, m in {0, 1, 2, 3, ...}
     ```
+
+- Load the pretrained darknet model and darknet weights to do the inference (image size is configured in cfg file already)
+
+    ```sh
+    python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
+    ```
+
+- Load pytorch weights (pth file) to do the inference
+
+    ```sh
+    python models.py <num_classes> <weightfile> <imgfile> <IN_IMAGE_H> <IN_IMAGE_W> <namefile(optional)>
+    ```
+
+- Inference Output
+
+    Inference output is of shape `[batch, num_boxes, 4 + num_classes]` in which `[batch, num_boxes, 4]` is x_center, y_center, width, height of bounding boxes, and `[batch, num_boxes, num_classes]` is confidences of bounding box for all classes.
+
+    Until now, still a small piece of post-processing including NMS is required. We are trying to minimize time and complexity of post-processing.
+
 
 
 # 3. Darknet2ONNX (Evolving)
