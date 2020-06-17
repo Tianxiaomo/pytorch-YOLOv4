@@ -89,19 +89,25 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     width  = 320 + 96 * m, m in {0, 1, 2, 3, ...}
     ```
 
-- Load the pretrained darknet model and darknet weights to do the inference (image size is configured in cfg file already)
+- **Different inference options**
 
-    ```sh
-    python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
-    ```
+    - Load the pretrained darknet model and darknet weights to do the inference (image size is configured in cfg file already)
 
-- Load pytorch weights (pth file) to do the inference
+        ```sh
+        python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
+        ```
 
-    ```sh
-    python models.py <num_classes> <weightfile> <imgfile> <IN_IMAGE_H> <IN_IMAGE_W> <namefile(optional)>
-    ```
+    - Load pytorch weights (pth file) to do the inference
 
-- Inference Output
+        ```sh
+        python models.py <num_classes> <weightfile> <imgfile> <IN_IMAGE_H> <IN_IMAGE_W> <namefile(optional)>
+        ```
+    
+    - Load converted ONNX file to do inference (See section 3 and 4)
+
+    - Load converted TensorRT engine file to do inference (See section 5)
+
+- Inference output
 
     Inference output is of shape `[batch, num_boxes, 4 + num_classes]` in which `[batch, num_boxes, 4]` is x_center, y_center, width, height of bounding boxes, and `[batch, num_boxes, num_classes]` is confidences of bounding box for all classes.
 
