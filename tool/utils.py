@@ -58,30 +58,6 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
     return carea / uarea
 
 
-def nms_old(boxes, nms_thresh):
-    if len(boxes) == 0:
-        return boxes
-
-    det_confs = np.zeros(len(boxes))
-    for i in range(len(boxes)):
-        det_confs[i] = 1 - boxes[i][4]
-
-    sortIds = np.argsort(det_confs)
-    out_boxes = []
-
-    for i in range(len(boxes)):
-        box_i = boxes[sortIds[i]]
-        if box_i[4] > 0:
-            out_boxes.append(box_i)
-            for j in range(i + 1, len(boxes)):
-                box_j = boxes[sortIds[j]]
-                if bbox_iou(box_i, box_j, x1y1x2y2=False) > nms_thresh:
-                    # print(box_i, box_j, bbox_iou(box_i, box_j, x1y1x2y2=False))
-                    box_j[4] = 0
-    
-    return out_boxes
-
-
 def nms_cpu(boxes, confs, nms_thresh=0.5, min_mode=False):
     # print(boxes.shape)
     x1 = boxes[:, 0]
@@ -122,6 +98,7 @@ def nms_cpu(boxes, confs, nms_thresh=0.5, min_mode=False):
 
 def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     import cv2
+    img = np.copy(img)
     colors = np.array([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.float32)
 
     def get_color(c, x, max_val):
