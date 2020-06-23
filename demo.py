@@ -19,10 +19,8 @@ from tool.torch_utils import *
 from tool.darknet2pytorch import Darknet
 import argparse
 
-"""hyper parameters"""
-use_cuda = True
 
-def detect_cv2(cfgfile, weightfile, imgfile):
+def detect_cv2(cfgfile, weightfile, imgfile, use_cuda=False):
     import cv2
     m = Darknet(cfgfile)
 
@@ -56,7 +54,7 @@ def detect_cv2(cfgfile, weightfile, imgfile):
     plot_boxes_cv2(img, boxes[0], savename='predictions.jpg', class_names=class_names)
 
 
-def detect_cv2_camera(cfgfile, weightfile):
+def detect_cv2_camera(cfgfile, weightfile, use_cuda=False):
     import cv2
     m = Darknet(cfgfile)
 
@@ -144,6 +142,7 @@ def get_args():
     parser.add_argument('-imgfile', type=str,
                         default='./data/mscoco2017/train2017/190109_180343_00154162.jpg',
                         help='path of your image file.', dest='imgfile')
+    parser.add_argument('--use-cuda', help='enable cuda', dest='use_cuda', action='store_true')
     args = parser.parse_args()
 
     return args
@@ -152,9 +151,9 @@ def get_args():
 if __name__ == '__main__':
     args = get_args()
     if args.imgfile:
-        detect_cv2(args.cfgfile, args.weightfile, args.imgfile)
+        detect_cv2(args.cfgfile, args.weightfile, args.imgfile, args.use_cuda)
         # detect_imges(args.cfgfile, args.weightfile)
         # detect_cv2(args.cfgfile, args.weightfile, args.imgfile)
         # detect_skimage(args.cfgfile, args.weightfile, args.imgfile)
     else:
-        detect_cv2_camera(args.cfgfile, args.weightfile)
+        detect_cv2_camera(args.cfgfile, args.weightfile, args.use_cuda)

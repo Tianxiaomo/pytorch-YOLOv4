@@ -452,29 +452,34 @@ if __name__ == "__main__":
     import cv2
 
     namesfile = None
-    if len(sys.argv) == 6:
+    if len(sys.argv) == 7:
         n_classes = int(sys.argv[1])
         weightfile = sys.argv[2]
         imgfile = sys.argv[3]
         height = int(sys.argv[4])
         width = int(sys.argv[5])
-    elif len(sys.argv) == 7:
+        use_cuda = bool(int(sys.argv[6]))
+    elif len(sys.argv) == 8:
         n_classes = int(sys.argv[1])
         weightfile = sys.argv[2]
         imgfile = sys.argv[3]
-        height = sys.argv[4]
+        height = int(sys.argv[4])
         width = int(sys.argv[5])
-        namesfile = int(sys.argv[6])
+        use_cuda = bool(int(sys.argv[6]))
+        namesfile = sys.argv[7]
     else:
         print('Usage: ')
         print('  python models.py num_classes weightfile imgfile namefile')
 
     model = Yolov4(yolov4conv137weight=None, n_classes=n_classes, inference=True)
 
-    pretrained_dict = torch.load(weightfile, map_location=torch.device('cuda'))
+    device = 'cpu'
+    if use_cuda:
+        device = 'cuda'
+
+    pretrained_dict = torch.load(weightfile, map_location=torch.device(device))
     model.load_state_dict(pretrained_dict)
 
-    use_cuda = True
     if use_cuda:
         model.cuda()
 
