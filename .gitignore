@@ -4,6 +4,7 @@ ttest
 *.onnx
 *.engine
 *.pyc
+z_demo_*
 
 __pycache__
 .idea

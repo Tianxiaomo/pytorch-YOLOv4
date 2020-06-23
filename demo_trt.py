@@ -95,11 +95,11 @@ def allocate_buffers(engine):
 
 # This function is generalized for multiple inputs/outputs.
 # inputs and outputs are expected to be lists of HostDeviceMem objects.
-def do_inference(context, bindings, inputs, outputs, stream, batch_size=1):
+def do_inference(context, bindings, inputs, outputs, stream):
     # Transfer input data to the GPU.
     [cuda.memcpy_htod_async(inp.device, inp.host, stream) for inp in inputs]
     # Run inference.
-    context.execute_async(batch_size=batch_size, bindings=bindings, stream_handle=stream.handle)
+    context.execute_async(bindings=bindings, stream_handle=stream.handle)
     # Transfer predictions back from the GPU.
     [cuda.memcpy_dtoh_async(out.host, out.device, stream) for out in outputs]
     # Synchronize the stream
