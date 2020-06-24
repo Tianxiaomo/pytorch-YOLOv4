@@ -27,6 +27,13 @@ BASE_DEPENDENCIES = [
 # Allow setup.py to be run from any path
 os.chdir(os.path.normpath(BASEDIR))
 
+
+def long_description():
+    this_directory = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+        return f.read()
+
+
 setup(
     name='wf-pytorch-yolo-v4',
     packages=find_packages(exclude=('tool.*', 'tool')),
@@ -34,7 +41,7 @@ setup(
     version=VERSION,
     include_package_data=True,
     description='Forked version of a minimal PyTorch implementation of YOLOv4',
-    long_description=open('README.md').read(),
+    long_description=long_description(),
     long_description_content_type='text/markdown',
     original_url='https://github.com/Tianxiaomo/pytorch-YOLOv4',
     original_author='Tianxiaomo',
