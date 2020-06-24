@@ -1,10 +1,10 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from tool.region_loss import RegionLoss
-from tool.yolo_layer import YoloLayer
-from tool.config import *
-from tool.torch_utils import *
+from .region_loss import RegionLoss
+from .yolo_layer import YoloLayer
+from .config import *
+from .torch_utils import *
 
 class Mish(torch.nn.Module):
     def __init__(self):
@@ -262,7 +262,7 @@ class Darknet(nn.Module):
                 elif activation == 'mish':
                     model.add_module('mish{0}'.format(conv_id), Mish())
                 else:
-                    print("convalution havn't activate {}".format(activation))
+                    print("convolutional conversion function doesn't handle activation module '{}'".format(activation))
 
                 prev_filters = filters
                 out_filters.append(prev_filters)

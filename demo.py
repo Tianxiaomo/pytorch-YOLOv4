@@ -14,9 +14,10 @@
 # import time
 # from PIL import Image, ImageDraw
 # from models.tiny_yolo import TinyYoloNet
-from tool.utils import *
-from tool.torch_utils import *
-from tool.darknet2pytorch import Darknet
+from .tool.class_names import COCO_NAMES, VOC_NAMES
+from .tool.utils import *
+from .tool.torch_utils import *
+from .tool.darknet2pytorch import Darknet
 import argparse
 
 
@@ -33,9 +34,9 @@ def detect_cv2(cfgfile, weightfile, imgfile, use_cuda=False):
 
     num_classes = m.num_classes
     if num_classes == 20:
-        namesfile = 'data/voc.names'
+        namesfile = VOC_NAMES
     elif num_classes == 80:
-        namesfile = 'data/coco.names'
+        namesfile = COCO_NAMES
     else:
         namesfile = 'data/x.names'
     class_names = load_class_names(namesfile)
@@ -73,9 +74,9 @@ def detect_cv2_camera(cfgfile, weightfile, use_cuda=False):
 
     num_classes = m.num_classes
     if num_classes == 20:
-        namesfile = 'data/voc.names'
+        namesfile = VOC_NAMES
     elif num_classes == 80:
-        namesfile = 'data/coco.names'
+        namesfile = COCO_NAMES
     else:
         namesfile = 'data/x.names'
     class_names = load_class_names(namesfile)
@@ -98,7 +99,7 @@ def detect_cv2_camera(cfgfile, weightfile, use_cuda=False):
     cap.release()
 
 
-def detect_skimage(cfgfile, weightfile, imgfile):
+def detect_skimage(cfgfile, weightfile, imgfile, use_cuda=False):
     from skimage import io
     from skimage.transform import resize
     m = Darknet(cfgfile)
@@ -112,9 +113,9 @@ def detect_skimage(cfgfile, weightfile, imgfile):
 
     num_classes = m.num_classes
     if num_classes == 20:
-        namesfile = 'data/voc.names'
+        namesfile = VOC_NAMES
     elif num_classes == 80:
-        namesfile = 'data/coco.names'
+        namesfile = COCO_NAMES
     else:
         namesfile = 'data/x.names'
     class_names = load_class_names(namesfile)
@@ -148,12 +149,16 @@ def get_args():
     return args
 
 
-if __name__ == '__main__':
+def main():
     args = get_args()
     if args.imgfile:
         detect_cv2(args.cfgfile, args.weightfile, args.imgfile, args.use_cuda)
-        # detect_imges(args.cfgfile, args.weightfile)
-        # detect_cv2(args.cfgfile, args.weightfile, args.imgfile)
-        # detect_skimage(args.cfgfile, args.weightfile, args.imgfile)
+        # detect_imges(args.cfgfile, args.weightfile, args.use_cuda)
+        # detect_cv2(args.cfgfile, args.weightfile, args.imgfile, args.use_cuda)
+        # detect_skimage(args.cfgfile, args.weightfile, args.imgfile, args.use_cuda)
     else:
         detect_cv2_camera(args.cfgfile, args.weightfile, args.use_cuda)
+
+
+if __name__ == '__main__':
+    main()

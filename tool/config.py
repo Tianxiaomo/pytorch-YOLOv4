@@ -1,5 +1,12 @@
+import os
 import torch
-from tool.torch_utils import convert2cpu
+from .torch_utils import convert2cpu
+
+
+YOLO_V3 = os.path.join(os.path.dirname(__file__), '../../cfg/yolov3.cfg')
+YOLO_V3_TINY = os.path.join(os.path.dirname(__file__), '../../cfg/yolov3.cfg')
+YOLO_V4 = os.path.join(os.path.dirname(__file__), '../../cfg/yolov4.cfg')
+YOLO_V4_CUSTOM = os.path.join(os.path.dirname(__file__), '../../cfg/yolov4-custom.cfg')
 
 
 def parse_cfg(cfgfile):

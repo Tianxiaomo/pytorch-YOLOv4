@@ -14,3 +14,7 @@ log
 
 *.jpg
 data/outcome
+
+build
+dist
+*.egg-info

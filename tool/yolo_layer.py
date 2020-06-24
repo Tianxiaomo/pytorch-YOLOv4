@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from tool.torch_utils import *
+from .torch_utils import *
 
 
 def yolo_forward_alternative(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1,

@@ -38,6 +38,13 @@ A minimal PyTorch implementation of YOLOv4.
 
 ![image](https://user-gold-cdn.xitu.io/2020/4/26/171b5a6c8b3bd513?w=768&h=576&f=jpeg&s=78882)
 
+# Wildflower Forked Version
+
+### Changes
+* Run using a CLI (`yolov4`)
+* Automatically download weights
+* PyPi ready so project can be used as a library
+
 # 0. Weights Download
 
 ## 0.1 darkent
