@@ -1,4 +1,4 @@
-numpy==1.18.2
+numpy==1.18.4
 torch==1.4.0
 tensorboardX==2.0
 scikit_image==0.16.2

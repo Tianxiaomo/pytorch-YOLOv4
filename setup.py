@@ -35,6 +35,7 @@ setup(
     include_package_data=True,
     description='Forked version of a minimal PyTorch implementation of YOLOv4',
     long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     original_url='https://github.com/Tianxiaomo/pytorch-YOLOv4',
     original_author='Tianxiaomo',
     url='https://github.com/WildflowerSchools/pytorch-YOLOv4',
