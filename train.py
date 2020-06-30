@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from torch import optim
 from tensorboardX import SummaryWriter
 import logging
-import os, sys
+import os, sys, math
 from tqdm import tqdm
 from dataset import Yolo_dataset
 from cfg import Cfg
@@ -24,11 +24,12 @@ from models import Yolov4
 import argparse
 from easydict import EasyDict as edict
 from torch.nn import functional as F
+from tool.darknet2pytorch import Darknet
 
 import numpy as np
 
 
-def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
+def bboxes_iou(bboxes_a, bboxes_b, xyxy=True, GIoU=False, DIoU=False, CIoU=False):
     """Calculate the Intersection of Unions (IoUs) between bounding boxes.
     IoU is calculated as a ratio of area of the intersection
     and area of the union.
@@ -48,41 +49,73 @@ def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
         box in :obj:`bbox_b`.
 
     from: https://github.com/chainer/chainercv
+    https://github.com/ultralytics/yolov3/blob/eca5b9c1d36e4f73bf2f94e141d864f1c2739e23/utils/utils.py#L262-L282
     """
     if bboxes_a.shape[1] != 4 or bboxes_b.shape[1] != 4:
         raise IndexError
 
-    # top left
     if xyxy:
+        # intersection top left
         tl = torch.max(bboxes_a[:, None, :2], bboxes_b[:, :2])
-        # bottom right
+        # intersection bottom right
         br = torch.min(bboxes_a[:, None, 2:], bboxes_b[:, 2:])
+        # convex (smallest enclosing box) top left and bottom right
+        con_tl = torch.min(bboxes_a[:, None, :2], bboxes_b[:, :2])
+        con_br = torch.max(bboxes_a[:, None, 2:], bboxes_b[:, 2:])
+        # centerpoint distance squared
+        rho2 = ((bboxes_a[:, None, 0] + bboxes_a[:, None, 2]) - (bboxes_b[:, 0] + bboxes_b[:, 2])) ** 2 / 4 + (
+                (bboxes_a[:, None, 1] + bboxes_a[:, None, 3]) - (bboxes_b[:, 1] + bboxes_b[:, 3])) ** 2 / 4
+
+        w1 = bboxes_a[:, 2] - bboxes_a[:, 0]
+        h1 = bboxes_a[:, 3] - bboxes_a[:, 1]
+        w2 = bboxes_b[:, 2] - bboxes_b[:, 0]
+        h2 = bboxes_b[:, 3] - bboxes_b[:, 1]
+
         area_a = torch.prod(bboxes_a[:, 2:] - bboxes_a[:, :2], 1)
         area_b = torch.prod(bboxes_b[:, 2:] - bboxes_b[:, :2], 1)
     else:
+        # intersection top left
         tl = torch.max((bboxes_a[:, None, :2] - bboxes_a[:, None, 2:] / 2),
                        (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2))
-        # bottom right
+        # intersection bottom right
         br = torch.min((bboxes_a[:, None, :2] + bboxes_a[:, None, 2:] / 2),
                        (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2))
+
+        # convex (smallest enclosing box) top left and bottom right
+        con_tl = torch.min((bboxes_a[:, None, :2] - bboxes_a[:, None, 2:] / 2),
+                           (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2))
+        con_br = torch.max((bboxes_a[:, None, :2] + bboxes_a[:, None, 2:] / 2),
+                           (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2))
+        # centerpoint distance squared
+        rho2 = ((bboxes_a[:, None, :2] - bboxes_b[:, :2]) ** 2 / 4).sum(dim=-1)
+
+        w1 = bboxes_a[:, 2]
+        h1 = bboxes_a[:, 3]
+        w2 = bboxes_b[:, 2]
+        h2 = bboxes_b[:, 3]
 
         area_a = torch.prod(bboxes_a[:, 2:], 1)
         area_b = torch.prod(bboxes_b[:, 2:], 1)
     en = (tl < br).type(tl.type()).prod(dim=2)
     area_i = torch.prod(br - tl, 2) * en  # * ((tl < br).all())
-    return area_i / (area_a[:, None] + area_b - area_i)
+    area_u = area_a[:, None] + area_b - area_i
+    iou = area_i / area_u
 
-
-def bboxes_giou(bboxes_a, bboxes_b, xyxy=True):
-    pass
-
-
-def bboxes_diou(bboxes_a, bboxes_b, xyxy=True):
-    pass
-
-
-def bboxes_ciou(bboxes_a, bboxes_b, xyxy=True):
-    pass
+    if GIoU or DIoU or CIoU:
+        if GIoU:  # Generalized IoU https://arxiv.org/pdf/1902.09630.pdf
+            area_c = torch.prod(con_br - con_tl, 2)  # convex area
+            return iou - (area_c - area_u) / area_c  # GIoU
+        if DIoU or CIoU:  # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
+            # convex diagonal squared
+            c2 = torch.pow(con_br - con_tl, 2).sum(dim=2) + 1e-16
+            if DIoU:
+                return iou - rho2 / c2  # DIoU
+            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
+                v = (4 / math.pi ** 2) * torch.pow(torch.atan(w1 / h1).unsqueeze(1) - torch.atan(w2 / h2), 2)
+                with torch.no_grad():
+                    alpha = v / (1 - iou + v)
+                return iou - (rho2 / c2 + v * alpha)  # CIoU
+    return iou
 
 
 class Yolo_loss(nn.Module):
@@ -150,7 +183,10 @@ class Yolo_loss(nn.Module):
             truth_j = truth_j_all[b, :n]
 
             # calculate iou between truth and reference anchors
-            anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id])
+            anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id], CIoU=True)
+
+            # temp = bbox_iou(truth_box.cpu(), self.ref_anchors[output_id])
+
             best_n_all = anchor_ious_all.argmax(dim=1)
             best_n = best_n_all % 3
             best_n_mask = ((best_n_all == self.anch_masks[output_id][0]) |
@@ -296,13 +332,13 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate / config.batch, betas=(0.9, 0.999), eps=1e-08)
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, burnin_schedule)
 
-    criterion = Yolo_loss(device=device, batch=config.batch // config.subdivisions,n_classes=config.classes)
+    criterion = Yolo_loss(device=device, batch=config.batch // config.subdivisions, n_classes=config.classes)
     # scheduler = ReduceLROnPlateau(optimizer, mode='max', verbose=True, patience=6, min_lr=1e-7)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, 0.001, 1e-6, 20)
 
     model.train()
     for epoch in range(epochs):
-        #model.train()
+        # model.train()
         epoch_loss = 0
         epoch_step = 0
 
@@ -323,7 +359,7 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
 
                 epoch_loss += loss.item()
 
-                if global_step  % config.subdivisions == 0:
+                if global_step % config.subdivisions == 0:
                     optimizer.step()
                     scheduler.step()
                     model.zero_grad()
@@ -378,9 +414,9 @@ def get_args(**kwargs):
                         help='GPU', dest='gpu')
     parser.add_argument('-dir', '--data-dir', type=str, default=None,
                         help='dataset dir', dest='dataset_dir')
-    parser.add_argument('-pretrained',type=str,default=None,help='pretrained yolov4.conv.137')
-    parser.add_argument('-classes',type=int,default=80,help='dataset classes')
-    parser.add_argument('-train_label_path',dest='train_label',type=str,default='train.txt',help="train label path")
+    parser.add_argument('-pretrained', type=str, default=None, help='pretrained yolov4.conv.137')
+    parser.add_argument('-classes', type=int, default=80, help='dataset classes')
+    parser.add_argument('-train_label_path', dest='train_label', type=str, default='train.txt', help="train label path")
     args = vars(parser.parse_args())
 
     for k in args.keys():
@@ -431,7 +467,10 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
-    model = Yolov4(cfg.pretrained,n_classes=cfg.classes)
+    if cfg.use_darknet_cfg:
+        model = Darknet(cfg.cfgfile)
+    else:
+        model = Yolov4(cfg.pretrained, n_classes=cfg.classes)
 
     if torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model)

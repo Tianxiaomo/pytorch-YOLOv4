@@ -403,7 +403,6 @@ class Yolov4Head(nn.Module):
             return [x2, x10, x18]
 
 
-
 class Yolov4(nn.Module):
     def __init__(self, yolov4conv137weight=None, n_classes=80, inference=False):
         super().__init__()

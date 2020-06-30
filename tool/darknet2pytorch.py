@@ -207,18 +207,20 @@ class Darknet(nn.Module):
                     self.loss = self.models[ind](x)
                 outputs[ind] = None
             elif block['type'] == 'yolo':
-                if self.training:
-                    pass
-                else:
-                    boxes = self.models[ind](x)
-                    out_boxes.append(boxes)
+                # if self.training:
+                #     pass
+                # else:
+                #     boxes = self.models[ind](x)
+                #     out_boxes.append(boxes)
+                boxes = self.models[ind](x)
+                out_boxes.append(boxes)
             elif block['type'] == 'cost':
                 continue
             else:
                 print('unknown type %s' % (block['type']))
         
         if self.training:
-            return self.loss
+            return out_boxes
         else:
             return get_region_boxes(out_boxes)
 

@@ -13,6 +13,10 @@
 from easydict import EasyDict
 
 Cfg = EasyDict()
+
+Cfg.use_darknet_cfg = True
+Cfg.cfgfile = 'cfg/yolov4.cfg'
+
 Cfg.batch = 64
 Cfg.subdivisions = 16
 Cfg.width = 608
