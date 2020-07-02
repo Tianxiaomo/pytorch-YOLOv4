@@ -191,7 +191,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     
     - Note2: extra NMS operations are needed for the tensorRT output. This demo uses python NMS code from `tool/utils.py`.
 
-    - Inference on X86 is verified to be okay for TensorRT 7.0, but output of the first iteration each time engine is loaded may be wrong on Jetson platforms. If you are using Jetpack 4.4 DP on Jetson platforms, try to ignore the first iteration each time as a workaround.
+    - Inference is verified to be okay for TensorRT 7.0, but TensorRT 7.1 may be proglematic in handling y coordinates of bounding boxes. Problem investigation is underway.
 
 
 # 6. ONNX2Tensorflow
