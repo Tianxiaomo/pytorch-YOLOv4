@@ -4,6 +4,8 @@ ttest
 *.onnx
 *.engine
 *.pyc
+*.infer
+
 z_demo_*
 
 __pycache__
