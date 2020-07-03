@@ -110,7 +110,7 @@ def yolo_forward_alternative(output, conf_thresh, num_classes, anchors, num_anch
 
 
 
-def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1,
+def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, scale_x_y, only_objectness=1,
                               validation=False):
     # Output would be invalid if it does not satisfy this assert
     # assert (output.size(1) == (5 + num_classes) * num_anchors)
@@ -158,7 +158,7 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, only_ob
 
     # Apply sigmoid(), exp() and softmax() to slices
     #
-    bxy = torch.sigmoid(bxy)
+    bxy = torch.sigmoid(bxy) * scale_x_y - 0.5 * (scale_x_y - 1)
     bwh = torch.exp(bwh)
     det_confs = torch.sigmoid(det_confs)
     cls_confs = torch.nn.Softmax(dim=2)(cls_confs)
@@ -263,6 +263,7 @@ class YoloLayer(nn.Module):
         self.thresh = 0.6
         self.stride = stride
         self.seen = 0
+        self.scale_x_y = 1
 
         self.model_out = model_out
 
@@ -274,5 +275,5 @@ class YoloLayer(nn.Module):
             masked_anchors += self.anchors[m * self.anchor_step:(m + 1) * self.anchor_step]
         masked_anchors = [anchor / self.stride for anchor in masked_anchors]
 
-        return yolo_forward(output, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask))
+        return yolo_forward(output, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask),scale_x_y=self.scale_x_y)
 
