@@ -132,8 +132,10 @@ class EmptyModule(nn.Module):
 
 # support route shortcut and reorg
 class Darknet(nn.Module):
-    def __init__(self, cfgfile):
+    def __init__(self, cfgfile, inference=False):
         super(Darknet, self).__init__()
+        self.inference = inference
+        self.training = not self.inference
 
         self.blocks = parse_cfg(cfgfile)
         self.width = int(self.blocks[0]['width'])

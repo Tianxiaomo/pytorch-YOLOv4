@@ -10,12 +10,16 @@
     @Detail    :
 
 '''
+import os
 from easydict import EasyDict
+
+
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 Cfg = EasyDict()
 
 Cfg.use_darknet_cfg = True
-Cfg.cfgfile = 'cfg/yolov4.cfg'
+Cfg.cfgfile = os.path.join(_BASE_DIR, 'cfg', 'yolov4.cfg')
 
 Cfg.batch = 64
 Cfg.subdivisions = 16
@@ -50,8 +54,8 @@ Cfg.blur = 0
 Cfg.gaussian = 0
 Cfg.boxes = 60  # box num
 Cfg.TRAIN_EPOCHS = 300
-Cfg.train_label = 'data/train.txt'
-Cfg.val_label = 'data/val.txt'
+Cfg.train_label = os.path.join(_BASE_DIR, 'data', 'train.txt')
+Cfg.val_label = os.path.join(_BASE_DIR, 'data' ,'val.txt')
 Cfg.TRAIN_OPTIMIZER = 'adam'
 '''
 image_path1 x1,y1,x2,y2,id x1,y1,x2,y2,id x1,y1,x2,y2,id ...
@@ -66,5 +70,9 @@ elif Cfg.cutmix:
 elif Cfg.mosaic:
     Cfg.mixup = 3
 
-Cfg.checkpoints = 'checkpoints'
-Cfg.TRAIN_TENSORBOARD_DIR = 'log'
+Cfg.checkpoints = os.path.join(_BASE_DIR, 'checkpoints')
+Cfg.TRAIN_TENSORBOARD_DIR = os.path.join(_BASE_DIR, 'log')
+
+Cfg.iou_type = 'iou'  # 'giou', 'diou', 'ciou'
+
+Cfg.keep_checkpoint_max = 10
