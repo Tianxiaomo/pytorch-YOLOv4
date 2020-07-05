@@ -110,7 +110,7 @@ def do_inference(context, bindings, inputs, outputs, stream):
 
 TRT_LOGGER = trt.Logger()
 
-def main(engine_path, image_path, image_size):
+def main(engine_path, image_path, batch, image_size):
     with get_engine(engine_path) as engine, engine.create_execution_context() as context:
         buffers = allocate_buffers(engine)
         image_src = cv2.imread(image_path)
@@ -119,7 +119,7 @@ def main(engine_path, image_path, image_size):
 
         for i in range(2):  # This 'for' loop is for speed check
                             # Because the first iteration is usually longer
-            boxes = detect(context, buffers, image_src, image_size, num_classes)
+            boxes = detect(context, buffers, image_src, batch, image_size, num_classes)
 
         if num_classes == 20:
             namesfile = 'data/voc.names'
@@ -129,7 +129,9 @@ def main(engine_path, image_path, image_size):
             namesfile = 'data/names'
 
         class_names = load_class_names(namesfile)
-        plot_boxes_cv2(image_src, boxes[0], savename='predictions_trt.jpg', class_names=class_names)
+
+        for i in range(batch):
+            plot_boxes_cv2(image_src, boxes[i], savename='predictions_trt_{}.jpg'.format(i), class_names=class_names)
 
 
 def get_engine(engine_path):
@@ -140,7 +142,7 @@ def get_engine(engine_path):
 
 
 
-def detect(context, buffers, image_src, image_size, num_classes):
+def detect(context, buffers, image_src, batch, image_size, num_classes):
     IN_IMAGE_H, IN_IMAGE_W = image_size
 
     ta = time.time()
@@ -149,6 +151,12 @@ def detect(context, buffers, image_src, image_size, num_classes):
     img_in = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     img_in = np.transpose(img_in, (2, 0, 1)).astype(np.float32)
     img_in = np.expand_dims(img_in, axis=0)
+
+    fake_batch = []
+    for i in range(batch):
+        fake_batch.append(img_in)
+
+    img_in = np.concatenate(fake_batch, axis=0)
     img_in /= 255.0
     img_in = np.ascontiguousarray(img_in)
     print("Shape of the network input: ", img_in.shape)
@@ -162,7 +170,7 @@ def detect(context, buffers, image_src, image_size, num_classes):
 
     print('Len of outputs: ', len(trt_outputs))
 
-    trt_output = trt_outputs[0].reshape(1, -1, 4 + num_classes)
+    trt_output = trt_outputs[0].reshape(batch, -1, 4 + num_classes)
 
     tb = time.time()
 
@@ -172,7 +180,7 @@ def detect(context, buffers, image_src, image_size, num_classes):
     print('    TRT inference time: %f' % (tb - ta))
     print('-----------------------------------')
 
-    boxes = post_processing(img_in, 0.4, 0.6, trt_output)
+    boxes = post_processing(img_in, 0.4, 0.4, trt_output)
 
     return boxes
 
@@ -181,12 +189,13 @@ def detect(context, buffers, image_src, image_size, num_classes):
 if __name__ == '__main__':
     engine_path = sys.argv[1]
     image_path = sys.argv[2]
+    batch = int(sys.argv[3])
     
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 5:
         image_size = (416, 416)
-    elif len(sys.argv) < 5:
-        image_size = (int(sys.argv[3]), int(sys.argv[3]))
+    elif len(sys.argv) < 6:
+        image_size = (int(sys.argv[4]), int(sys.argv[4]))
     else:
-        image_size = (int(sys.argv[3]), int(sys.argv[4]))
+        image_size = (int(sys.argv[4]), int(sys.argv[5]))
     
-    main(engine_path, image_path, image_size)
+    main(engine_path, image_path, batch, image_size)

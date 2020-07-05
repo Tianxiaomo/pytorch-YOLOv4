@@ -119,7 +119,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 - **This script is to convert the official pretrained darknet model into ONNX**
 
-- **Pytorch version Recommended: 1.4.0**
+- **Pytorch version Recommended: 1.4.0 for TensorRT 7.0, 1.5.0 or higher for TensorRT 7.1**
 
 - **Install onnxruntime**
 
@@ -142,7 +142,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 - **You can convert your trained pytorch model into ONNX using this script**
 
-- **Pytorch version Recommended: 1.4.0**
+- **Pytorch version Recommended: 1.4.0 for TensorRT 7.0, 1.5.0 or higher for TensorRT 7.1**
 
 - **Install onnxruntime**
 
