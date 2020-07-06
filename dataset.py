@@ -260,6 +260,7 @@ class Yolo_dataset(Dataset):
                 truth[data[0]].append([int(j) for j in i.split(',')])
 
         self.truth = truth
+        self.imgs = list(self.truth.keys())
 
     def __len__(self):
         return len(self.truth.keys())
@@ -267,7 +268,7 @@ class Yolo_dataset(Dataset):
     def __getitem__(self, index):
         if not self.train:
             return self._get_val_item(index)
-        img_path = list(self.truth.keys())[index]
+        img_path = self.imgs[index]
         bboxes = np.array(self.truth.get(img_path), dtype=np.float)
         img_path = os.path.join(self.cfg.dataset_dir, img_path)
         use_mixup = self.cfg.mixup
@@ -408,7 +409,19 @@ class Yolo_dataset(Dataset):
 
 
 def get_image_id(filename:str) -> int:
-    """Convert a string to a integer."""
+    """
+    Convert a string to a integer.
+    Make sure that the images and the `image_id`s are in one-one correspondence.
+    There are already `image_id`s in annotations of the COCO dataset,
+    in which case this function is unnecessary.
+    For creating one's own `get_image_id` function, one can refer to
+    https://github.com/google/automl/blob/master/efficientdet/dataset/create_pascal_tfrecord.py#L86
+    or refer to the following code (where the filenames are like 'level1_123.jpg')
+    >>> lv, no = os.path.splitext(os.path.basename(filename))[0].split("_")
+    >>> lv = lv.replace("level", "")
+    >>> no = f"{int(no):04d}"
+    >>> return int(lv+no)
+    """
     raise NotImplementedError("Create your own 'get_image_id' function")
     lv, no = os.path.splitext(os.path.basename(filename))[0].split("_")
     lv = lv.replace("level", "")
