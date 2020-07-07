@@ -119,7 +119,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 - **This script is to convert the official pretrained darknet model into ONNX**
 
-- **Pytorch version Recommended: 1.4.0**
+- **Pytorch version Recommended: 1.4.0 for TensorRT 7.0, 1.5.0 or higher for TensorRT 7.1**
 
 - **Install onnxruntime**
 
@@ -142,7 +142,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 - **You can convert your trained pytorch model into ONNX using this script**
 
-- **Pytorch version Recommended: 1.4.0**
+- **Pytorch version Recommended: 1.4.0 for TensorRT 7.0, 1.5.0 or higher for TensorRT 7.1**
 
 - **Install onnxruntime**
 
@@ -190,8 +190,6 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     - Note1: input_H and input_W should agree with the input size in the original ONNX file.
     
     - Note2: extra NMS operations are needed for the tensorRT output. This demo uses python NMS code from `tool/utils.py`.
-
-    - Inference is verified to be okay for TensorRT 7.0, but TensorRT 7.1 may be problematic in handling y coordinates of bounding boxes. Problem investigation is underway.
 
 
 # 6. ONNX2Tensorflow

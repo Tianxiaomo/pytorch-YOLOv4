@@ -119,7 +119,7 @@ def main(engine_path, image_path, image_size):
 
         for i in range(2):  # This 'for' loop is for speed check
                             # Because the first iteration is usually longer
-            boxes = detect(engine, context, buffers, image_src, image_size, num_classes)
+            boxes = detect(context, buffers, image_src, image_size, num_classes)
 
         if num_classes == 20:
             namesfile = 'data/voc.names'
@@ -140,7 +140,7 @@ def get_engine(engine_path):
 
 
 
-def detect(engine, context, buffers, image_src, image_size, num_classes):
+def detect(context, buffers, image_src, image_size, num_classes):
     IN_IMAGE_H, IN_IMAGE_W = image_size
 
     ta = time.time()
