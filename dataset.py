@@ -10,14 +10,15 @@
     @Detail    :
 
 '''
-from torch.utils.data.dataset import Dataset
-
-import random
-import cv2
-import sys
-import numpy as np
 import os
-import matplotlib.pyplot as plt
+import random
+import sys
+
+import cv2
+import numpy as np
+
+import torch
+from torch.utils.data.dataset import Dataset
 
 
 def rand_uniform_strong(min, max):
@@ -431,6 +432,7 @@ def get_image_id(filename:str) -> int:
 
 if __name__ == "__main__":
     from cfg import Cfg
+    import matplotlib.pyplot as plt
 
     random.seed(2020)
     np.random.seed(2020)
