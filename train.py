@@ -417,7 +417,10 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
             else:
                 eval_model = Yolov4(cfg.pretrained, n_classes=cfg.classes, inference=True)
             # eval_model = Yolov4(yolov4conv137weight=None, n_classes=config.classes, inference=True)
-            eval_model.load_state_dict(model.state_dict())
+            if torch.cuda.device_count() > 1:
+                eval_model.load_state_dict(model.module.state_dict())
+            else:
+                eval_model.load_state_dict(model.state_dict())
             eval_model.to(device)
             evaluator = evaluate(eval_model, val_loader, config, device)
             del eval_model
