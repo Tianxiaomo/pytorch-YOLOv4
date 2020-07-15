@@ -40,7 +40,7 @@ A minimal PyTorch implementation of YOLOv4.
 
 # 0. Weights Download
 
-## 0.1 darkent
+## 0.1 darknet
 - baidu(https://pan.baidu.com/s/1dAGEW8cm-dqK14TbhhVetA     Extraction code:dm5b)
 - google(https://drive.google.com/open?id=1cewMfusmPjYWbrnuJRuKhPMwRe_b9PaT)
 
