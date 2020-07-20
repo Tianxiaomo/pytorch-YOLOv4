@@ -162,17 +162,16 @@ def detect(context, buffers, image_src, image_size, num_classes):
 
     print('Len of outputs: ', len(trt_outputs))
 
-    trt_output = trt_outputs[0].reshape(1, -1, 4 + num_classes)
+    trt_outputs[0] = trt_outputs[0].reshape(1, -1, 1, 4)
+    trt_outputs[1] = trt_outputs[1].reshape(1, -1, num_classes)
 
     tb = time.time()
-
-    print(trt_output.shape)
 
     print('-----------------------------------')
     print('    TRT inference time: %f' % (tb - ta))
     print('-----------------------------------')
 
-    boxes = post_processing(img_in, 0.4, 0.6, trt_output)
+    boxes = post_processing(img_in, 0.4, 0.6, trt_outputs)
 
     return boxes
 

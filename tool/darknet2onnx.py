@@ -24,7 +24,7 @@ def transform_to_onnx(cfgfile, weightfile, batch_size=1):
                       export_params=True,
                       opset_version=11,
                       do_constant_folding=True,
-                      input_names=['input'], output_names=['output'],
+                      input_names=['input'], output_names=['boxes', 'confs'],
                       dynamic_axes=None)
 
     print('Onnx model exporting done')

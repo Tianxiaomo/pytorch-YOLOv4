@@ -109,10 +109,11 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 - Inference output
 
-    Inference output is of shape `[batch, num_boxes, 4 + num_classes]` in which `[batch, num_boxes, 4]` is x_center, y_center, width, height of bounding boxes, and `[batch, num_boxes, num_classes]` is confidences of bounding box for all classes.
+    There are 2 inference outputs.
+    - One is locations of bounding boxes, its shape is  `[batch, num_boxes, 1, 4]` which represents x1, y1, x2, y2 of each bounding box.
+    - The other one is scores of bounding boxes which is of shape `[batch, num_boxes, num_classes]` indicating scores of all classes for each bounding box.
 
     Until now, still a small piece of post-processing including NMS is required. We are trying to minimize time and complexity of post-processing.
-
 
 
 # 3. Darknet2ONNX (Evolving)
