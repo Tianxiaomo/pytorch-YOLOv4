@@ -138,11 +138,17 @@ def bboxes_iou_test(bboxes_a, bboxes_b, fmt='voc', iou_type='iou'):
     # if iou_type.lower() == 'diou':
     #     return diou
 
+    """ the legacy custom cosine similarity:
+
     # bb_a of shape `(N,2)`, bb_b of shape `(K,2)`
     v = torch.einsum('nm,km->nk', bb_a, bb_b)
     v = _true_divide(v, (torch.norm(bb_a, p='fro', dim=1)[:,np.newaxis] * torch.norm(bb_b, p='fro', dim=1)))
+    # avoid nan for torch.acos near \pm 1
+    # https://github.com/pytorch/pytorch/issues/8069
     eps = 1e-7
     v = torch.clamp(v, -1+eps, 1-eps)
+    """
+    v = F.cosine_similarity(bb_a[:,np.newaxis,:], bb_b, dim=-1)
     v = (_true_divide(2*torch.acos(v), np.pi)).pow(2)
     alpha = (_true_divide(v, 1-iou+v))*((iou>=0.5).type(iou.type()))
 
