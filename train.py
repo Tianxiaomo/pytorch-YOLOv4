@@ -493,7 +493,7 @@ def evaluate(model, data_loader, cfg, device, logger=None, **kwargs):
         for img, target, (boxes, confs) in zip(images, targets, outputs):
             img_height, img_width = img.shape[:2]
             # boxes = output[...,:4].copy()  # output boxes in yolo format
-            boxes = boxes.cpu().detach().numpy()
+            boxes = boxes.squeeze(2).cpu().detach().numpy()
             boxes[...,:2] = boxes[...,:2] - boxes[...,2:]/2  # to coco format
             boxes[...,0] = boxes[...,0]*img_width
             boxes[...,1] = boxes[...,1]*img_height
