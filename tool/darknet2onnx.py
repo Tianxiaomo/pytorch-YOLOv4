@@ -3,7 +3,7 @@ import torch
 from tool.darknet2pytorch import Darknet
 
 
-def transform_to_onnx(cfgfile, weightfile, batch_size=1,dynamic):
+def transform_to_onnx(cfgfile, weightfile, batch_size=1, dynamic=False):
     model = Darknet(cfgfile)
 
     model.print_network()
@@ -14,8 +14,8 @@ def transform_to_onnx(cfgfile, weightfile, batch_size=1,dynamic):
 
     x = torch.randn((batch_size, 3, model.height, model.width), requires_grad=True)  # .cuda()
 
-    if dynamics:
-        
+    if dynamic:
+
         onnx_file_name = "yolov4_{}_3_{}_{}_dyna.onnx".format(batch_size, model.height, model.width)
         input_names = ["input"]
         output_names = ['boxes', 'confs']
@@ -38,17 +38,16 @@ def transform_to_onnx(cfgfile, weightfile, batch_size=1,dynamic):
     else:
         onnx_file_name = "yolov4_{}_3_{}_{}_static.onnx".format(batch_size, model.height, model.width)
         torch.onnx.export(model,
-                      x,
-                      onnx_file_name,
-                      export_params=True,
-                      opset_version=11,
-                      do_constant_folding=True,
-                      input_names=['input'], output_names=['boxes', 'confs'],
-                      dynamic_axes=None)
+                          x,
+                          onnx_file_name,
+                          export_params=True,
+                          opset_version=11,
+                          do_constant_folding=True,
+                          input_names=['input'], output_names=['boxes', 'confs'],
+                          dynamic_axes=None)
 
         print('Onnx model exporting done')
         return onnx_file_name
-  
 
 
 if __name__ == '__main__':
