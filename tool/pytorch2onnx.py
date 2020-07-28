@@ -2,7 +2,7 @@ import sys
 import torch
 
 
-def transform_to_onnx(cfgfile, weightfile, batch_size=1, dynamics=False):
+def transform_to_onnx(cfgfile, weightfile, batch_size=1, dynamic=False):
     model = Darknet(cfgfile)
 
     model.print_network()
@@ -62,8 +62,8 @@ if __name__ == '__main__':
         cfgfile = sys.argv[1]
         weightfile = sys.argv[2]
         batch_size = int(sys.argv[3])
-        dynamics = True if sys.argv[4] == 'True' else False
-        transform_to_onnx(cfgfile, weightfile, batch_size, dynamics)
+        dynamic = True if sys.argv[4] == 'True' else False
+        transform_to_onnx(cfgfile, weightfile, batch_size, dynamic)
     else:
         print('Please execute this script this way:\n')
         print('  python darknet2onnx.py <cfgFile> <weightFile>')
