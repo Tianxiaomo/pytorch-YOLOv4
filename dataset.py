@@ -10,14 +10,15 @@
     @Detail    :
 
 '''
-from torch.utils.data.dataset import Dataset
-
-import random
-import cv2
-import sys
-import numpy as np
 import os
-import matplotlib.pyplot as plt
+import random
+import sys
+
+import cv2
+import numpy as np
+
+import torch
+from torch.utils.data.dataset import Dataset
 
 
 def rand_uniform_strong(min, max):
@@ -239,7 +240,7 @@ def draw_box(img, bboxes):
 
 
 class Yolo_dataset(Dataset):
-    def __init__(self, lable_path, cfg):
+    def __init__(self, lable_path, cfg, train=True):
         super(Yolo_dataset, self).__init__()
         if cfg.mixup == 2:
             print("cutmix=1 - isn't supported for Detector")
@@ -249,6 +250,7 @@ class Yolo_dataset(Dataset):
             raise
 
         self.cfg = cfg
+        self.train = train
 
         truth = {}
         f = open(lable_path, 'r', encoding='utf-8')
@@ -259,12 +261,15 @@ class Yolo_dataset(Dataset):
                 truth[data[0]].append([int(j) for j in i.split(',')])
 
         self.truth = truth
+        self.imgs = list(self.truth.keys())
 
     def __len__(self):
         return len(self.truth.keys())
 
     def __getitem__(self, index):
-        img_path = list(self.truth.keys())[index]
+        if not self.train:
+            return self._get_val_item(index)
+        img_path = self.imgs[index]
         bboxes = np.array(self.truth.get(img_path), dtype=np.float)
         img_path = os.path.join(self.cfg.dataset_dir, img_path)
         use_mixup = self.cfg.mixup
@@ -381,9 +386,53 @@ class Yolo_dataset(Dataset):
         out_bboxes1[:min(out_bboxes.shape[0], self.cfg.boxes)] = out_bboxes[:min(out_bboxes.shape[0], self.cfg.boxes)]
         return out_img, out_bboxes1
 
+    def _get_val_item(self, index):
+        """
+        """
+        img_path = self.imgs[index]
+        bboxes_with_cls_id = np.array(self.truth.get(img_path), dtype=np.float)
+        img = cv2.imread(os.path.join(self.cfg.dataset_dir, img_path))
+        # img_height, img_width = img.shape[:2]
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # img = cv2.resize(img, (self.cfg.w, self.cfg.h))
+        # img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
+        num_objs = len(bboxes_with_cls_id)
+        target = {}
+        # boxes to coco format
+        boxes = bboxes_with_cls_id[...,:4]
+        boxes[..., 2:] = boxes[..., 2:] - boxes[..., :2]  # box width, box height
+        target['boxes'] = torch.as_tensor(boxes, dtype=torch.float32)
+        target['labels'] = torch.as_tensor(bboxes_with_cls_id[...,-1].flatten(), dtype=torch.int64)
+        target['image_id'] = torch.tensor([get_image_id(img_path)])
+        target['area'] = (target['boxes'][:,3])*(target['boxes'][:,2])
+        target['iscrowd'] = torch.zeros((num_objs,), dtype=torch.int64)
+        return img, target
+
+
+def get_image_id(filename:str) -> int:
+    """
+    Convert a string to a integer.
+    Make sure that the images and the `image_id`s are in one-one correspondence.
+    There are already `image_id`s in annotations of the COCO dataset,
+    in which case this function is unnecessary.
+    For creating one's own `get_image_id` function, one can refer to
+    https://github.com/google/automl/blob/master/efficientdet/dataset/create_pascal_tfrecord.py#L86
+    or refer to the following code (where the filenames are like 'level1_123.jpg')
+    >>> lv, no = os.path.splitext(os.path.basename(filename))[0].split("_")
+    >>> lv = lv.replace("level", "")
+    >>> no = f"{int(no):04d}"
+    >>> return int(lv+no)
+    """
+    raise NotImplementedError("Create your own 'get_image_id' function")
+    lv, no = os.path.splitext(os.path.basename(filename))[0].split("_")
+    lv = lv.replace("level", "")
+    no = f"{int(no):04d}"
+    return int(lv+no)
+
 
 if __name__ == "__main__":
     from cfg import Cfg
+    import matplotlib.pyplot as plt
 
     random.seed(2020)
     np.random.seed(2020)

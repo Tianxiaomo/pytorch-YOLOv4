@@ -6,6 +6,7 @@ from .yolo_layer import YoloLayer
 from .config import *
 from .torch_utils import *
 
+
 class Mish(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -72,7 +73,6 @@ class Upsample_interpolate(nn.Module):
         self.stride = stride
 
     def forward(self, x):
-
         x_numpy = x.cpu().detach().numpy()
         H = x_numpy.shape[2]
         W = x_numpy.shape[3]
@@ -132,13 +132,15 @@ class EmptyModule(nn.Module):
 
 # support route shortcut and reorg
 class Darknet(nn.Module):
-    def __init__(self, cfgfile):
+    def __init__(self, cfgfile, inference=False):
         super(Darknet, self).__init__()
+        self.inference = inference
+        self.training = not self.inference
 
         self.blocks = parse_cfg(cfgfile)
         self.width = int(self.blocks[0]['width'])
         self.height = int(self.blocks[0]['height'])
-        
+
         self.models = self.create_network(self.blocks)  # merge conv, bn,leaky
         self.loss = self.models[len(self.models) - 1]
 
@@ -170,8 +172,15 @@ class Darknet(nn.Module):
                 layers = block['layers'].split(',')
                 layers = [int(i) if int(i) > 0 else int(i) + ind for i in layers]
                 if len(layers) == 1:
-                    x = outputs[layers[0]]
-                    outputs[ind] = x
+                    if 'groups' not in block.keys() or int(block['groups']) == 1:
+                        x = outputs[layers[0]]
+                        outputs[ind] = x
+                    else:
+                        groups = int(block['groups'])
+                        group_id = int(block['group_id'])
+                        _, b, _, _ = outputs[layers[0]].shape
+                        x = outputs[layers[0]][:, b // groups * group_id:b // groups * (group_id + 1)]
+                        outputs[ind] = x
                 elif len(layers) == 2:
                     x1 = outputs[layers[0]]
                     x2 = outputs[layers[1]]
@@ -207,18 +216,20 @@ class Darknet(nn.Module):
                     self.loss = self.models[ind](x)
                 outputs[ind] = None
             elif block['type'] == 'yolo':
-                if self.training:
-                    pass
-                else:
-                    boxes = self.models[ind](x)
-                    out_boxes.append(boxes)
+                # if self.training:
+                #     pass
+                # else:
+                #     boxes = self.models[ind](x)
+                #     out_boxes.append(boxes)
+                boxes = self.models[ind](x)
+                out_boxes.append(boxes)
             elif block['type'] == 'cost':
                 continue
             else:
                 print('unknown type %s' % (block['type']))
-        
+
         if self.training:
-            return self.loss
+            return out_boxes
         else:
             return get_region_boxes(out_boxes)
 
@@ -326,10 +337,14 @@ class Darknet(nn.Module):
                 ind = len(models)
                 layers = [int(i) if int(i) > 0 else int(i) + ind for i in layers]
                 if len(layers) == 1:
-                    prev_filters = out_filters[layers[0]]
-                    prev_stride = out_strides[layers[0]]
+                    if 'groups' not in block.keys() or int(block['groups']) == 1:
+                        prev_filters = out_filters[layers[0]]
+                        prev_stride = out_strides[layers[0]]
+                    else:
+                        prev_filters = out_filters[layers[0]] // int(block['groups'])
+                        prev_stride = out_strides[layers[0]] // int(block['groups'])
                 elif len(layers) == 2:
-                    assert (layers[0] == ind - 1)
+                    assert (layers[0] == ind - 1 or layers[1] == ind - 1)
                     prev_filters = out_filters[layers[0]] + out_filters[layers[1]]
                     prev_stride = out_strides[layers[0]]
                 elif len(layers) == 4:
@@ -391,6 +406,7 @@ class Darknet(nn.Module):
                 yolo_layer.num_anchors = int(block['num'])
                 yolo_layer.anchor_step = len(yolo_layer.anchors) // yolo_layer.num_anchors
                 yolo_layer.stride = prev_stride
+                yolo_layer.scale_x_y = float(block['scale_x_y'])
                 # yolo_layer.object_scale = float(block['object_scale'])
                 # yolo_layer.noobject_scale = float(block['noobject_scale'])
                 # yolo_layer.class_scale = float(block['class_scale'])

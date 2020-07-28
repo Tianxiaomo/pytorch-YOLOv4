@@ -62,8 +62,8 @@ def nms_cpu(boxes, confs, nms_thresh=0.5, min_mode=False):
     # print(boxes.shape)
     x1 = boxes[:, 0]
     y1 = boxes[:, 1]
-    x2 = boxes[:, 0] + boxes[:, 2]
-    y2 = boxes[:, 1] + boxes[:, 3]
+    x2 = boxes[:, 2]
+    y2 = boxes[:, 3]
 
     areas = (x2 - x1) * (y2 - y1)
     order = confs.argsort()[::-1]
@@ -113,10 +113,10 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     height = img.shape[0]
     for i in range(len(boxes)):
         box = boxes[i]
-        x1 = int((box[0] - box[2] / 2.0) * width)
-        y1 = int((box[1] - box[3] / 2.0) * height)
-        x2 = int((box[0] + box[2] / 2.0) * width)
-        y2 = int((box[1] + box[3] / 2.0) * height)
+        x1 = int(box[0] * width)
+        y1 = int(box[1] * height)
+        x2 = int(box[2] * width)
+        y2 = int(box[3] * height)
 
         if color:
             rgb = color
@@ -171,16 +171,19 @@ def post_processing(img, conf_thresh, nms_thresh, output):
     # strides = [8, 16, 32]
     # anchor_step = len(anchors) // num_anchors
 
+    # [batch, num, 1, 4]
+    box_array = output[0]
+    # [batch, num, num_classes]
+    confs = output[1]
+
     t1 = time.time()
 
-    if type(output).__name__ != 'ndarray':
-        output = output.cpu().detach().numpy()
+    if type(box_array).__name__ != 'ndarray':
+        box_array = box_array.cpu().detach().numpy()
+        confs = confs.cpu().detach().numpy()
 
     # [batch, num, 4]
-    box_array = output[:, :, :4]
-
-    # [batch, num, num_classes]
-    confs = output[:, :, 4:]
+    box_array = box_array[:, :, 0]
 
     # [batch, num, num_classes] --> [batch, num]
     max_conf = np.max(confs, axis=2)

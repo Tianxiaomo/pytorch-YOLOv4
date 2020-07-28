@@ -43,7 +43,7 @@ def detect(session, image_src):
 
     outputs = session.run(None, {input_name: img_in})
 
-    boxes = post_processing(img_in, 0.4, 0.6, outputs[0])
+    boxes = post_processing(img_in, 0.4, 0.6, outputs)
 
     num_classes = 80
     if num_classes == 20:
