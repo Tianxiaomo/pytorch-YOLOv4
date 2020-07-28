@@ -21,3 +21,4 @@ data/outcome
 build
 dist
 *.egg-info
+.python-version
