@@ -212,6 +212,32 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     
     Note:Errors will occur when using "pip install onnx-tf", at least for me,it is recommended to use source code installation
 
+# 7. ONNX2TensorRT and DeepStream Inference
+  
+  1. Compile the DeepStream Nvinfer Plugin 
+  
+  ```
+      cd DeepStream
+      make 
+  ```
+  2. Build a TRT Engine.
+  
+   For single batch, 
+   ```
+   trtexec --onnx=<onnx_file> --explicitBatch --saveEngine=<tensorRT_engine_file> --workspace=<size_in_megabytes> --fp16
+   ```
+   
+   For multi-batch, 
+  ```
+  trtexec --onnx=<onnx_file> --explicitBatch --shapes=input:Xx3xHxW --optShapes=input:Xx3xHxW --maxShapes=input:Xx3xHxW --minShape=input:1x3xHxW --saveEngine=<tensorRT_engine_file> --fp16
+  ```
+  
+  Note :The maxShapes could not be larger than model original shape.
+  
+  3. Write the deepstream config file for the TRT Engine.
+  
+  
+   
 Reference:
 - https://github.com/eriklindernoren/PyTorch-YOLOv3
 - https://github.com/marvis/pytorch-caffe-darknet-convert
