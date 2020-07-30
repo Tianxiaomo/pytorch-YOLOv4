@@ -263,11 +263,11 @@ class Yolo_loss(nn.Module):
             target[..., 2:4] *= tgt_scale
 
             loss_xy += F.binary_cross_entropy(input=output[..., :2], target=target[..., :2],
-                                              weight=tgt_scale * tgt_scale, size_average=False)
-            loss_wh += F.mse_loss(input=output[..., 2:4], target=target[..., 2:4], size_average=False) / 2
-            loss_obj += F.binary_cross_entropy(input=output[..., 4], target=target[..., 4], size_average=False)
-            loss_cls += F.binary_cross_entropy(input=output[..., 5:], target=target[..., 5:], size_average=False)
-            loss_l2 += F.mse_loss(input=output, target=target, size_average=False)
+                                              weight=tgt_scale * tgt_scale, reduction='sum')
+            loss_wh += F.mse_loss(input=output[..., 2:4], target=target[..., 2:4], reduction='sum') / 2
+            loss_obj += F.binary_cross_entropy(input=output[..., 4], target=target[..., 4], reduction='sum')
+            loss_cls += F.binary_cross_entropy(input=output[..., 5:], target=target[..., 5:], reduction='sum')
+            loss_l2 += F.mse_loss(input=output, target=target, reduction='sum')
 
         loss = loss_xy + loss_wh + loss_obj + loss_cls
 
@@ -511,7 +511,6 @@ def evaluate(model, data_loader, cfg, device, logger=None, **kwargs):
                 "scores": scores,
                 "labels": labels,
             }
-        
         evaluator_time = time.time()
         coco_evaluator.update(res)
         evaluator_time = time.time() - evaluator_time
