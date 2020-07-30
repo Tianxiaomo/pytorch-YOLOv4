@@ -217,7 +217,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
   1. Compile the DeepStream Nvinfer Plugin 
   
   ```
-      cd DeepStream
+      cd DeepStream/nvdsinfer_custom_impl_Yolo
       make 
   ```
   2. Build a TRT Engine.
@@ -234,7 +234,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
   
   Note :The maxShapes could not be larger than model original shape.
   
-  3. Write the deepstream config file for the TRT Engine.
+  3. Modify the deepstream config file under DeepStream Directory for the TRT Engine.
   
   
    
