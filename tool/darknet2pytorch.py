@@ -308,11 +308,11 @@ class Darknet(nn.Module):
                 models.append(model)
             elif block['type'] == 'cost':
                 if block['_type'] == 'sse':
-                    model = nn.MSELoss(size_average=True)
+                    model = nn.MSELoss(reduction='mean')
                 elif block['_type'] == 'L1':
-                    model = nn.L1Loss(size_average=True)
+                    model = nn.L1Loss(reduction='mean')
                 elif block['_type'] == 'smooth':
-                    model = nn.SmoothL1Loss(size_average=True)
+                    model = nn.SmoothL1Loss(reduction='mean')
                 out_filters.append(1)
                 out_strides.append(prev_stride)
                 models.append(model)

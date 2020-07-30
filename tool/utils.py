@@ -182,6 +182,8 @@ def post_processing(img, conf_thresh, nms_thresh, output):
         box_array = box_array.cpu().detach().numpy()
         confs = confs.cpu().detach().numpy()
 
+    num_classes = confs.shape[2]
+
     # [batch, num, 4]
     box_array = box_array[:, :, 0]
 
@@ -199,16 +201,24 @@ def post_processing(img, conf_thresh, nms_thresh, output):
         l_max_conf = max_conf[i, argwhere]
         l_max_id = max_id[i, argwhere]
 
-        keep = nms_cpu(l_box_array, l_max_conf, nms_thresh)
-        
         bboxes = []
-        if (keep.size > 0):
-            l_box_array = l_box_array[keep, :]
-            l_max_conf = l_max_conf[keep]
-            l_max_id = l_max_id[keep]
+        # nms for each class
+        for j in range(num_classes):
 
-            for j in range(l_box_array.shape[0]):
-                bboxes.append([l_box_array[j, 0], l_box_array[j, 1], l_box_array[j, 2], l_box_array[j, 3], l_max_conf[j], l_max_conf[j], l_max_id[j]])
+            cls_argwhere = l_max_id == j
+            ll_box_array = l_box_array[cls_argwhere, :]
+            ll_max_conf = l_max_conf[cls_argwhere]
+            ll_max_id = l_max_id[cls_argwhere]
+
+            keep = nms_cpu(ll_box_array, ll_max_conf, nms_thresh)
+            
+            if (keep.size > 0):
+                ll_box_array = ll_box_array[keep, :]
+                ll_max_conf = ll_max_conf[keep]
+                ll_max_id = ll_max_id[keep]
+
+                for k in range(ll_box_array.shape[0]):
+                    bboxes.append([ll_box_array[k, 0], ll_box_array[k, 1], ll_box_array[k, 2], ll_box_array[k, 3], ll_max_conf[k], ll_max_conf[k], ll_max_id[k]])
         
         bboxes_batch.append(bboxes)
 

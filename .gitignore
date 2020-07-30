@@ -16,6 +16,7 @@ runs
 log
 
 *.jpg
+*.json
 data/outcome
 
 build
