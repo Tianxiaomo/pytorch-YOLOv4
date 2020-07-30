@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from tool.torch_utils import *
 
 
-def yolo_forward_alternative(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1,
+def yolo_forward_alternative(output, conf_thresh, num_classes, anchors, num_anchors, scale_x_y, only_objectness=1,
                               validation=False):
     # Output would be invalid if it does not satisfy this assert
     # assert (output.size(1) == (5 + num_classes) * num_anchors)
@@ -80,7 +80,7 @@ def yolo_forward_alternative(output, conf_thresh, num_classes, anchors, num_anch
     bxy = torch.sigmoid(bxy)
     bwh = torch.exp(bwh)
     det_confs = torch.sigmoid(det_confs)
-    cls_confs = torch.nn.Softmax(dim=2)(cls_confs)
+    cls_confs = torch.sigmoid(cls_confs)
 
     # Shape: [batch, num_anchors, 2, H * W]
     bxy = bxy.view(batch, num_anchors, 2, H * W)
@@ -165,7 +165,7 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, scale_x
     bxy = torch.sigmoid(bxy) * scale_x_y - 0.5 * (scale_x_y - 1)
     bwh = torch.exp(bwh)
     det_confs = torch.sigmoid(det_confs)
-    cls_confs = torch.nn.Softmax(dim=2)(cls_confs)
+    cls_confs = torch.sigmoid(cls_confs)
 
     # Prepare C-x, C-y, P-w, P-h (None of them are torch related)
     grid_x = np.expand_dims(np.expand_dims(np.expand_dims(np.linspace(0, W - 1, W), axis=0).repeat(H, 0), axis=0), axis=0)
