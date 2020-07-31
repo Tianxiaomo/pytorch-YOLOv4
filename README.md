@@ -78,6 +78,14 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 # 2. Inference (Evolving)
 
+- Performance on MS COCO val2017 set (using pretrained DarknetWeights from <https://github.com/AlexeyAB/darknet>)
+
+| Model type | AP IoU=0.50:0.95 | AP IoU=0.50 | AR 0.50:0.95 |
+| ---------- | ---------------: | ----------: | -----------: |
+| Pytorch    |    0.466         |     0.704   |      0.591   |
+| ONNX       |    incoming      |  incoming   |   incoming   |
+| TensorRT   |    incoming      |  incoming   |   incoming   |
+
 - Image input size for inference
 
     Image input size is NOT restricted in `320 * 320`, `416 * 416`, `512 * 512` and `608 * 608`.
