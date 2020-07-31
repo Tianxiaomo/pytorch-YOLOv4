@@ -236,7 +236,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
   
   3. Modify the deepstream config file under DeepStream Directory for the TRT Engine.
   
-  
+  4. deepstream-app -c deepstream_app_config_yoloV4.txt
    
 Reference:
 - https://github.com/eriklindernoren/PyTorch-YOLOv3
