@@ -246,15 +246,15 @@ class Darknet(nn.Module):
         conv_id = 0
         for block in blocks:
             if block['type'] == 'net':
-                prev_filters = int(block['channels'])
+                prev_filters = int(float(block['channels']))
                 continue
             elif block['type'] == 'convolutional':
                 conv_id = conv_id + 1
-                batch_normalize = int(block['batch_normalize'])
-                filters = int(block['filters'])
-                kernel_size = int(block['size'])
-                stride = int(block['stride'])
-                is_pad = int(block['pad'])
+                batch_normalize = int(float(block['batch_normalize']))
+                filters = int(float(block['filters']))
+                kernel_size = int(float(block['size']))
+                stride = int(float(block['stride']))
+                is_pad = int(float(block['pad']))
                 pad = (kernel_size - 1) // 2 if is_pad else 0
                 activation = block['activation']
                 model = nn.Sequential()
