@@ -78,44 +78,59 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 # 2. Inference (Evolving)
 
-- Performance on MS COCO val2017 set (using pretrained DarknetWeights from <https://github.com/AlexeyAB/darknet>)
+## 2.1 416 * 416 Performance on MS COCO dataset (using pretrained DarknetWeights from <https://github.com/AlexeyAB/darknet>)
 
-| Model type | AP IoU=0.50:0.95 | AP IoU=0.50 | AR 0.50:0.95 |
-| ---------- | ---------------: | ----------: | -----------: |
-| Pytorch    |    0.466         |     0.704   |      0.591   |
-| ONNX       |    incoming      |  incoming   |   incoming   |
-| TensorRT   |    incoming      |  incoming   |   incoming   |
+**ONNX and TensorRT models are converted from Pytorch (TianXiaomo): Pytorch->ONNX->TensorRT.**
+See following sections for more details of conversions.
 
-- Image input size for inference
+- val2017 dataset
 
-    Image input size is NOT restricted in `320 * 320`, `416 * 416`, `512 * 512` and `608 * 608`.
-    You can adjust your input sizes for a different input ratio, for example: `320 * 608`.
-    Larger input size could help detect smaller targets, but may be slower and GPU memory exhausting.
+    | Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
+    | ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
+    | Pytorch (TianXiaomo)|       0.466 |       0.704 |       0.505 |       0.267 |       0.524 |       0.629 |
+    | ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
+    | TensorRT FP32 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.637 |
+    | TensorRT FP16 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.636 |
+
+- testdev2017 dataset
+
+    | Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
+    | ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
+    | DarkNet (YOLOv4 paper)|     0.412 |       0.628 |       0.443 |       0.204 |       0.444 |       0.560 |
+    | Pytorch (TianXiaomo)|       0.404 |       0.615 |       0.436 |       0.196 |       0.438 |       0.552 |
+    | ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
+    | TensorRT FP32 + BatchedNMSPlugin | 0.412| 0.625 |       0.445 |       0.200 |       0.446 |       0.564 |
+
+## 2.2 Image input size for inference
+
+Image input size is NOT restricted in `320 * 320`, `416 * 416`, `512 * 512` and `608 * 608`.
+You can adjust your input sizes for a different input ratio, for example: `320 * 608`.
+Larger input size could help detect smaller targets, but may be slower and GPU memory exhausting.
 
     ```py
     height = 320 + 96 * n, n in {0, 1, 2, 3, ...}
     width  = 320 + 96 * m, m in {0, 1, 2, 3, ...}
     ```
 
-- **Different inference options**
+## 2.3 **Different inference options**
 
-    - Load the pretrained darknet model and darknet weights to do the inference (image size is configured in cfg file already)
+- Load the pretrained darknet model and darknet weights to do the inference (image size is configured in cfg file already)
 
-        ```sh
-        python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
-        ```
+    ```sh
+    python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
+    ```
 
-    - Load pytorch weights (pth file) to do the inference
+- Load pytorch weights (pth file) to do the inference
 
-        ```sh
-        python models.py <num_classes> <weightfile> <imgfile> <IN_IMAGE_H> <IN_IMAGE_W> <namefile(optional)>
-        ```
+    ```sh
+    python models.py <num_classes> <weightfile> <imgfile> <IN_IMAGE_H> <IN_IMAGE_W> <namefile(optional)>
+    ```
     
-    - Load converted ONNX file to do inference (See section 3 and 4)
+- Load converted ONNX file to do inference (See section 3 and 4)
 
-    - Load converted TensorRT engine file to do inference (See section 5)
+- Load converted TensorRT engine file to do inference (See section 5)
 
-- Inference output
+## 2.4 Inference output
 
     There are 2 inference outputs.
     - One is locations of bounding boxes, its shape is  `[batch, num_boxes, 1, 4]` which represents x1, y1, x2, y2 of each bounding box.
