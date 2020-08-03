@@ -85,21 +85,21 @@ See following sections for more details of conversions.
 
 - val2017 dataset (416x416)
 
-    | Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
-    | ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
-    | Pytorch (TianXiaomo)|       0.466 |       0.704 |       0.505 |       0.267 |       0.524 |       0.629 |
-    | ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
-    | TensorRT FP32 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.637 |
-    | TensorRT FP16 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.636 |
+| Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
+| ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
+| Pytorch (TianXiaomo)|       0.466 |       0.704 |       0.505 |       0.267 |       0.524 |       0.629 |
+| ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
+| TensorRT FP32 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.637 |
+| TensorRT FP16 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.636 |
 
 - testdev2017 dataset (416x416)
 
-    | Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
-    | ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
-    | DarkNet (YOLOv4 paper)|     0.412 |       0.628 |       0.443 |       0.204 |       0.444 |       0.560 |
-    | Pytorch (TianXiaomo)|       0.404 |       0.615 |       0.436 |       0.196 |       0.438 |       0.552 |
-    | ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
-    | TensorRT FP32 + BatchedNMSPlugin | 0.412| 0.625 |       0.445 |       0.200 |       0.446 |       0.564 |
+| Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
+| ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
+| DarkNet (YOLOv4 paper)|     0.412 |       0.628 |       0.443 |       0.204 |       0.444 |       0.560 |
+| Pytorch (TianXiaomo)|       0.404 |       0.615 |       0.436 |       0.196 |       0.438 |       0.552 |
+| ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
+| TensorRT FP32 + BatchedNMSPlugin | 0.412| 0.625 |       0.445 |       0.200 |       0.446 |       0.564 |
 
 
 ## 2.2 Image input size for inference
@@ -108,10 +108,10 @@ Image input size is NOT restricted in `320 * 320`, `416 * 416`, `512 * 512` and 
 You can adjust your input sizes for a different input ratio, for example: `320 * 608`.
 Larger input size could help detect smaller targets, but may be slower and GPU memory exhausting.
 
-    ```py
-    height = 320 + 96 * n, n in {0, 1, 2, 3, ...}
-    width  = 320 + 96 * m, m in {0, 1, 2, 3, ...}
-    ```
+```py
+height = 320 + 96 * n, n in {0, 1, 2, 3, ...}
+width  = 320 + 96 * m, m in {0, 1, 2, 3, ...}
+```
 
 ## 2.3 **Different inference options**
 
