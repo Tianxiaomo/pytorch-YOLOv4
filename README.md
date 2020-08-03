@@ -87,6 +87,7 @@ See following sections for more details of conversions.
 
 | Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
 | ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
+| DarkNet (YOLOv4 paper)|     0.471 |       0.710 |       0.510 |       0.278 |       0.525 |       0.636 |
 | Pytorch (TianXiaomo)|       0.466 |       0.704 |       0.505 |       0.267 |       0.524 |       0.629 |
 | ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
 | TensorRT FP32 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.637 |
