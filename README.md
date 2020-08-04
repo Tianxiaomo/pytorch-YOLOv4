@@ -83,7 +83,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 **ONNX and TensorRT models are converted from Pytorch (TianXiaomo): Pytorch->ONNX->TensorRT.**
 See following sections for more details of conversions.
 
-- val2017 dataset (416x416)
+- val2017 dataset (input size: 416x416)
 
 | Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
 | ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
@@ -93,7 +93,7 @@ See following sections for more details of conversions.
 | TensorRT FP32 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.637 |
 | TensorRT FP16 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.636 |
 
-- testdev2017 dataset (416x416)
+- testdev2017 dataset (input size: 416x416)
 
 | Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
 | ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
@@ -101,6 +101,7 @@ See following sections for more details of conversions.
 | Pytorch (TianXiaomo)|       0.404 |       0.615 |       0.436 |       0.196 |       0.438 |       0.552 |
 | ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
 | TensorRT FP32 + BatchedNMSPlugin | 0.412| 0.625 |       0.445 |       0.200 |       0.446 |       0.564 |
+| TensorRT FP16 + BatchedNMSPlugin | 0.412| 0.625 |       0.445 |       0.200 |       0.446 |       0.563 |
 
 
 ## 2.2 Image input size for inference
