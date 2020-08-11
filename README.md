@@ -207,7 +207,7 @@ Until now, still a small piece of post-processing including NMS is required. We 
 
 ## 5.1 Convert from ONNX of static Batch size
 
-- **Run the following command to convert VOLOv4 ONNX model into TensorRT engine**
+- **Run the following command to convert YOLOv4 ONNX model into TensorRT engine**
 
     ```sh
     trtexec --onnx=<onnx_file> --explicitBatch --saveEngine=<tensorRT_engine_file> --workspace=<size_in_megabytes> --fp16
@@ -216,7 +216,7 @@ Until now, still a small piece of post-processing including NMS is required. We 
 
 ## 5.2 Convert from ONNX of dynamic Batch size
 
-- **Run the following command to convert VOLOv4 ONNX model into TensorRT engine**
+- **Run the following command to convert YOLOv4 ONNX model into TensorRT engine**
 
     ```sh
     trtexec --onnx=<onnx_file> \
