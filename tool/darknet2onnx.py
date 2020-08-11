@@ -3,23 +3,23 @@ import torch
 from tool.darknet2pytorch import Darknet
 
 
-def transform_to_onnx(cfgfile, weightfile, batch_size=1, dynamic=False):
+def transform_to_onnx(cfgfile, weightfile, batch_size=1):
     model = Darknet(cfgfile)
 
     model.print_network()
     model.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
-    # model.cuda()
+    dynamic = False
+    if batch_size <= 0:
+        dynamic = True
 
-    x = torch.randn((batch_size, 3, model.height, model.width), requires_grad=True)  # .cuda()
+    input_names = ["input"]
+    output_names = ['boxes', 'confs']
 
     if dynamic:
-
-        onnx_file_name = "yolov4_{}_3_{}_{}_dyna.onnx".format(batch_size, model.height, model.width)
-        input_names = ["input"]
-        output_names = ['boxes', 'confs']
-
+        x = torch.randn((1, 3, model.height, model.width), requires_grad=True)
+        onnx_file_name = "yolov4_-1_3_{}_{}_dynamic.onnx".format(model.height, model.width)
         dynamic_axes = {"input": {0: "batch_size"}, "boxes": {0: "batch_size"}, "confs": {0: "batch_size"}}
         # Export the model
         print('Export the onnx model ...')
@@ -36,6 +36,7 @@ def transform_to_onnx(cfgfile, weightfile, batch_size=1, dynamic=False):
         return onnx_file_name
 
     else:
+        x = torch.randn((batch_size, 3, model.height, model.width), requires_grad=True)
         onnx_file_name = "yolov4_{}_3_{}_{}_static.onnx".format(batch_size, model.height, model.width)
         torch.onnx.export(model,
                           x,
@@ -43,7 +44,7 @@ def transform_to_onnx(cfgfile, weightfile, batch_size=1, dynamic=False):
                           export_params=True,
                           opset_version=11,
                           do_constant_folding=True,
-                          input_names=['input'], output_names=['boxes', 'confs'],
+                          input_names=input_names, output_names=output_names,
                           dynamic_axes=None)
 
         print('Onnx model exporting done')
