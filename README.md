@@ -221,7 +221,7 @@ Until now, still a small piece of post-processing including NMS is required. We 
     ```sh
     trtexec --onnx=<onnx_file> \
     --minShapes=input:<shape_of_min_batch> --optShapes=input:<shape_of_opt_batch> --maxShapes=input:<shape_of_max_batch> \
-    --workspace=<size_in_megabytes> --saveEngine=yolov4_-1_3_320_512_dyna.engine --fp16
+    --workspace=<size_in_megabytes> --saveEngine=<engine_file> --fp16
     ```
 - For example:
 
