@@ -5,7 +5,7 @@ BASEDIR = os.path.dirname(os.path.abspath(__file__))
 VERSION = open(os.path.join(BASEDIR, 'VERSION')).read().strip()
 
 BASE_DEPENDENCIES = [
-    'numpy>=1.18.4',
+    'numpy==1.17.5',
     'torch>=1.4.0',
     'tensorboardX>=2.0',
     'scikit_image>=0.16.2',
