@@ -14,7 +14,7 @@ BASE_DEPENDENCIES = [
     'easydict>=1.9',
     'Pillow>=7.1.2',
     'opencv_python',
-    'wf-pycocotools>=2.0.1',
+    'wf-pycocotools>=2.0.1.2',
     'googledrivedownloader>=0.4'
 ]
 
