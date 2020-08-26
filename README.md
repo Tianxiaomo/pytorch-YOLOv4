@@ -28,7 +28,7 @@ A minimal PyTorch implementation of YOLOv4.
 ├── weight                --> darknet2pytorch
 ├── tool
 │   ├── camera.py           a demo camera
-│   ├── coco_annotatin.py       coco dataset generator
+│   ├── coco_annotation.py       coco dataset generator
 │   ├── config.py
 │   ├── darknet2pytorch.py
 │   ├── region_loss.py
@@ -61,7 +61,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 1. Download weight
 2. Transform data
 
-    For coco dataset,you can use tool/coco_annotatin.py.
+    For coco dataset,you can use tool/coco_annotation.py.
     ```
     # train.txt
     image_path1 x1,y1,x2,y2,id x1,y1,x2,y2,id x1,y1,x2,y2,id ...
