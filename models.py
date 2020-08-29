@@ -20,17 +20,20 @@ class Upsample(nn.Module):
 
     def forward(self, x, target_size, inference=False):
         assert (x.data.dim() == 4)
-        _, _, tH, tW = target_size
+        # _, _, tH, tW = target_size
 
         if inference:
-            B = x.data.size(0)
-            C = x.data.size(1)
-            H = x.data.size(2)
-            W = x.data.size(3)
 
-            return x.view(B, C, H, 1, W, 1).expand(B, C, H, tH // H, W, tW // W).contiguous().view(B, C, tH, tW)
+            #B = x.data.size(0)
+            #C = x.data.size(1)
+            #H = x.data.size(2)
+            #W = x.data.size(3)
+
+            return x.view(x.size(0), x.size(1), x.size(2), 1, x.size(3), 1).\
+                    expand(x.size(0), x.size(1), x.size(2), target_size[2] // x.size(2), x.size(3), target_size[3] // x.size(3)).\
+                    contiguous().view(x.size(0), x.size(1), target_size[2], target_size[3])
         else:
-            return F.interpolate(x, size=(tH, tW), mode='nearest')
+            return F.interpolate(x, size=(target_size[2], target_size[3]), mode='nearest')
 
 
 class Conv_Bn_Activation(nn.Module):

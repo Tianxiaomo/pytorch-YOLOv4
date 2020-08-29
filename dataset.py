@@ -258,7 +258,7 @@ class Yolo_dataset(Dataset):
             data = line.split(" ")
             truth[data[0]] = []
             for i in data[1:]:
-                truth[data[0]].append([int(j) for j in i.split(',')])
+                truth[data[0]].append([int(float(j)) for j in i.split(',')])
 
         self.truth = truth
         self.imgs = list(self.truth.keys())

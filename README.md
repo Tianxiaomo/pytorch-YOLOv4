@@ -85,42 +85,66 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 
 # 2. Inference (Evolving)
 
-- Image input size for inference
+## 2.1 Performance on MS COCO dataset (using pretrained DarknetWeights from <https://github.com/AlexeyAB/darknet>)
 
-    Image input size is NOT restricted in `320 * 320`, `416 * 416`, `512 * 512` and `608 * 608`.
-    You can adjust your input sizes for a different input ratio, for example: `320 * 608`.
-    Larger input size could help detect smaller targets, but may be slower and GPU memory exhausting.
+**ONNX and TensorRT models are converted from Pytorch (TianXiaomo): Pytorch->ONNX->TensorRT.**
+See following sections for more details of conversions.
 
-    ```py
-    height = 320 + 96 * n, n in {0, 1, 2, 3, ...}
-    width  = 320 + 96 * m, m in {0, 1, 2, 3, ...}
+- val2017 dataset (input size: 416x416)
+
+| Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
+| ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
+| DarkNet (YOLOv4 paper)|     0.471 |       0.710 |       0.510 |       0.278 |       0.525 |       0.636 |
+| Pytorch (TianXiaomo)|       0.466 |       0.704 |       0.505 |       0.267 |       0.524 |       0.629 |
+| TensorRT FP32 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.637 |
+| TensorRT FP16 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.636 |
+
+- testdev2017 dataset (input size: 416x416)
+
+| Model type          | AP          | AP50        | AP75        |  APS        | APM         | APL         |
+| ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
+| DarkNet (YOLOv4 paper)|     0.412 |       0.628 |       0.443 |       0.204 |       0.444 |       0.560 |
+| Pytorch (TianXiaomo)|       0.404 |       0.615 |       0.436 |       0.196 |       0.438 |       0.552 |
+| TensorRT FP32 + BatchedNMSPlugin | 0.412| 0.625 |       0.445 |       0.200 |       0.446 |       0.564 |
+| TensorRT FP16 + BatchedNMSPlugin | 0.412| 0.625 |       0.445 |       0.200 |       0.446 |       0.563 |
+
+
+## 2.2 Image input size for inference
+
+Image input size is NOT restricted in `320 * 320`, `416 * 416`, `512 * 512` and `608 * 608`.
+You can adjust your input sizes for a different input ratio, for example: `320 * 608`.
+Larger input size could help detect smaller targets, but may be slower and GPU memory exhausting.
+
+```py
+height = 320 + 96 * n, n in {0, 1, 2, 3, ...}
+width  = 320 + 96 * m, m in {0, 1, 2, 3, ...}
+```
+
+## 2.3 **Different inference options**
+
+- Load the pretrained darknet model and darknet weights to do the inference (image size is configured in cfg file already)
+
+    ```sh
+    python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
     ```
 
-- **Different inference options**
+- Load pytorch weights (pth file) to do the inference
 
-    - Load the pretrained darknet model and darknet weights to do the inference (image size is configured in cfg file already)
-
-        ```sh
-        python demo.py -cfgfile <cfgFile> -weightfile <weightFile> -imgfile <imgFile>
-        ```
-
-    - Load pytorch weights (pth file) to do the inference
-
-        ```sh
-        python models.py <num_classes> <weightfile> <imgfile> <IN_IMAGE_H> <IN_IMAGE_W> <namefile(optional)>
-        ```
+    ```sh
+    python models.py <num_classes> <weightfile> <imgfile> <IN_IMAGE_H> <IN_IMAGE_W> <namefile(optional)>
+    ```
     
-    - Load converted ONNX file to do inference (See section 3 and 4)
+- Load converted ONNX file to do inference (See section 3 and 4)
 
-    - Load converted TensorRT engine file to do inference (See section 5)
+- Load converted TensorRT engine file to do inference (See section 5)
 
-- Inference output
+## 2.4 Inference output
 
-    There are 2 inference outputs.
-    - One is locations of bounding boxes, its shape is  `[batch, num_boxes, 1, 4]` which represents x1, y1, x2, y2 of each bounding box.
-    - The other one is scores of bounding boxes which is of shape `[batch, num_boxes, num_classes]` indicating scores of all classes for each bounding box.
+There are 2 inference outputs.
+- One is locations of bounding boxes, its shape is  `[batch, num_boxes, 1, 4]` which represents x1, y1, x2, y2 of each bounding box.
+- The other one is scores of bounding boxes which is of shape `[batch, num_boxes, num_classes]` indicating scores of all classes for each bounding box.
 
-    Until now, still a small piece of post-processing including NMS is required. We are trying to minimize time and complexity of post-processing.
+Until now, still a small piece of post-processing including NMS is required. We are trying to minimize time and complexity of post-processing.
 
 
 # 3. Darknet2ONNX (Evolving)
@@ -144,10 +168,11 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     python demo_darknet2onnx.py <cfgFile> <weightFile> <imageFile> <batchSize>
     ```
 
-  This script will generate 2 ONNX models.
+## 3.1 Dynamic or static batch size
 
-  - One is for running the demo (batch_size=1)
-  - The other one is what you want to generate (batch_size=batchSize)
+- **Positive batch size will generate ONNX model of static batch size, otherwise, batch size will be dynamic**
+    - Dynamic batch size will generate only one ONNX model
+    - Static batch size will generate 2 ONNX models, one is for running the demo (batch_size=1)
 
 # 4. Pytorch2ONNX (Evolving)
 
@@ -176,34 +201,54 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
     python demo_pytorch2onnx.py yolov4.pth dog.jpg 8 80 416 416
     ```
 
-  This script will generate 2 ONNX models.
+## 4.1 Dynamic or static batch size
 
-  - One is for running the demo (batch_size=1)
-  - The other one is what you want to generate (batch_size=batch_size)
+- **Positive batch size will generate ONNX model of static batch size, otherwise, batch size will be dynamic**
+    - Dynamic batch size will generate only one ONNX model
+    - Static batch size will generate 2 ONNX models, one is for running the demo (batch_size=1)
 
 
 # 5. ONNX2TensorRT (Evolving)
 
 - **TensorRT version Recommended: 7.0, 7.1**
 
-- **Run the following command to convert VOLOv4 ONNX model into TensorRT engine**
+## 5.1 Convert from ONNX of static Batch size
+
+- **Run the following command to convert YOLOv4 ONNX model into TensorRT engine**
 
     ```sh
     trtexec --onnx=<onnx_file> --explicitBatch --saveEngine=<tensorRT_engine_file> --workspace=<size_in_megabytes> --fp16
     ```
     - Note: If you want to use int8 mode in conversion, extra int8 calibration is needed.
 
-- **Run the demo**
+## 5.2 Convert from ONNX of dynamic Batch size
+
+- **Run the following command to convert YOLOv4 ONNX model into TensorRT engine**
 
     ```sh
-    python demo_trt.py <tensorRT_engine_file> <input_image> <input_H> <input_W>
+    trtexec --onnx=<onnx_file> \
+    --minShapes=input:<shape_of_min_batch> --optShapes=input:<shape_of_opt_batch> --maxShapes=input:<shape_of_max_batch> \
+    --workspace=<size_in_megabytes> --saveEngine=<engine_file> --fp16
+    ```
+- For example:
+
+    ```sh
+    trtexec --onnx=yolov4_-1_3_320_512_dynamic.onnx \
+    --minShapes=input:1x3x320x512 --optShapes=input:4x3x320x512 --maxShapes=input:8x3x320x512 \
+    --workspace=2048 --saveEngine=yolov4_-1_3_320_512_dynamic.engine --fp16
     ```
 
-    - This demo here only works when batchSize=1, but you can update this demo a little for batched inputs.
+## 5.3 Run the demo
+
+```sh
+python demo_trt.py <tensorRT_engine_file> <input_image> <input_H> <input_W>
+```
+
+- This demo here only works when batchSize is dynamic (1 should be within dynamic range) or batchSize=1, but you can update this demo a little for other dynamic or static batch sizes.
     
-    - Note1: input_H and input_W should agree with the input size in the original ONNX file.
+- Note1: input_H and input_W should agree with the input size in the original ONNX file.
     
-    - Note2: extra NMS operations are needed for the tensorRT output. This demo uses python NMS code from `tool/utils.py`.
+- Note2: extra NMS operations are needed for the tensorRT output. This demo uses python NMS code from `tool/utils.py`.
 
 
 # 6. ONNX2Tensorflow

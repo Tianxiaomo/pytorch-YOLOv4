@@ -55,15 +55,12 @@ class Upsample_expand(nn.Module):
         self.stride = stride
 
     def forward(self, x):
-        stride = self.stride
         assert (x.data.dim() == 4)
-        B = x.data.size(0)
-        C = x.data.size(1)
-        H = x.data.size(2)
-        W = x.data.size(3)
-        ws = stride
-        hs = stride
-        x = x.view(B, C, H, 1, W, 1).expand(B, C, H, stride, W, stride).contiguous().view(B, C, H * stride, W * stride)
+        
+        x = x.view(x.size(0), x.size(1), x.size(2), 1, x.size(3), 1).\
+            expand(x.size(0), x.size(1), x.size(2), self.stride, x.size(3), self.stride).contiguous().\
+            view(x.size(0), x.size(1), x.size(2) * self.stride, x.size(3) * self.stride)
+
         return x
 
 
@@ -73,14 +70,9 @@ class Upsample_interpolate(nn.Module):
         self.stride = stride
 
     def forward(self, x):
-        x_numpy = x.cpu().detach().numpy()
-        H = x_numpy.shape[2]
-        W = x_numpy.shape[3]
+        assert (x.data.dim() == 4)
 
-        H = H * self.stride
-        W = W * self.stride
-
-        out = F.interpolate(x, size=(H, W), mode='nearest')
+        out = F.interpolate(x, size=(x.size(2) * self.stride, x.size(3) * self.stride), mode='nearest')
         return out
 
 

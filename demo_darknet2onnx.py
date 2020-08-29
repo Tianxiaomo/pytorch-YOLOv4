@@ -12,10 +12,13 @@ from tool.darknet2onnx import *
 
 def main(cfg_file, weight_file, image_path, batch_size):
 
-    # Transform to onnx as specified batch size
-    transform_to_onnx(cfg_file, weight_file, batch_size)
-    # Transform to onnx for demo
-    onnx_path_demo = transform_to_onnx(cfg_file, weight_file, 1)
+    if batch_size <= 0:
+        onnx_path_demo = transform_to_onnx(cfg_file, weight_file, batch_size)
+    else:
+        # Transform to onnx as specified batch size
+        transform_to_onnx(cfg_file, weight_file, batch_size)
+        # Transform to onnx as demo
+        onnx_path_demo = transform_to_onnx(cfg_file, weight_file, 1)
 
     session = onnxruntime.InferenceSession(onnx_path_demo)
     # session = onnx.load(onnx_path)
