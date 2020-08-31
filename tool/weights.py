@@ -26,9 +26,8 @@ def validate_checksum(id, dest_path):
     return False
 
 
-def download_weights(id=DARKNET_YOLOV4_WEIGHTS_ID):
-    dest_path = None
-    if id == DARKNET_YOLOV4_WEIGHTS_ID:
+def download_weights(id=DARKNET_YOLOV4_WEIGHTS_ID, dest_path=None):
+    if id == DARKNET_YOLOV4_WEIGHTS_ID and dest_path is None:
         dest_path = os.path.join(data_dir(), 'yolov4.weights')
 
     if dest_path is None:
@@ -47,7 +46,7 @@ def download_weights(id=DARKNET_YOLOV4_WEIGHTS_ID):
                                                 showsize=True,
                                                 overwrite=overwrite)
         except Exception as e:
-            logger.error('Error at %s', 'file download', exc_info=e)
+            logging.error('Error at %s', 'file download', exc_info=e)
             return None
 
         if validate_checksum(id, dest_path):

@@ -14,14 +14,15 @@
 # import time
 # from PIL import Image, ImageDraw
 # from models.tiny_yolo import TinyYoloNet
-from .tool.class_names import COCO_NAMES, VOC_NAMES
-from .tool.utils import *
-from .tool.torch_utils import *
-from .tool.darknet2pytorch import Darknet
+from tool.class_names import COCO_NAMES, VOC_NAMES
+from tool.utils import *
+from tool.torch_utils import *
+from tool.darknet2pytorch import Darknet
+from tool.weights import download_weights
 import argparse
 
 
-def detect_cv2(cfgfile, weightfile, imgfile, use_cuda=False):
+def detect_cv2(cfgfile, weightfile, imgfile, namesfile=None, use_cuda=False):
     import cv2
     m = Darknet(cfgfile)
 
@@ -32,13 +33,14 @@ def detect_cv2(cfgfile, weightfile, imgfile, use_cuda=False):
     if use_cuda:
         m.cuda()
 
-    num_classes = m.num_classes
-    if num_classes == 20:
-        namesfile = VOC_NAMES
-    elif num_classes == 80:
-        namesfile = COCO_NAMES
-    else:
-        namesfile = 'data/x.names'
+    if namesfile is None:
+        num_classes = m.num_classes
+        if num_classes == 20:
+            namesfile = VOC_NAMES
+        elif num_classes == 80:
+            namesfile = COCO_NAMES
+        else:
+            namesfile = 'data/x.names'
     class_names = load_class_names(namesfile)
 
     img = cv2.imread(imgfile)
@@ -55,7 +57,7 @@ def detect_cv2(cfgfile, weightfile, imgfile, use_cuda=False):
     plot_boxes_cv2(img, boxes[0], savename='predictions.jpg', class_names=class_names)
 
 
-def detect_cv2_camera(cfgfile, weightfile, use_cuda=False):
+def detect_cv2_camera(cfgfile, weightfile, namesfile=None, use_cuda=False):
     import cv2
     m = Darknet(cfgfile)
 
@@ -72,13 +74,14 @@ def detect_cv2_camera(cfgfile, weightfile, use_cuda=False):
     cap.set(4, 720)
     print("Starting the YOLO loop...")
 
-    num_classes = m.num_classes
-    if num_classes == 20:
-        namesfile = VOC_NAMES
-    elif num_classes == 80:
-        namesfile = COCO_NAMES
-    else:
-        namesfile = 'data/x.names'
+    if namesfile is None:
+        num_classes = m.num_classes
+        if num_classes == 20:
+            namesfile = VOC_NAMES
+        elif num_classes == 80:
+            namesfile = COCO_NAMES
+        else:
+            namesfile = 'data/x.names'
     class_names = load_class_names(namesfile)
 
     while True:
@@ -99,7 +102,7 @@ def detect_cv2_camera(cfgfile, weightfile, use_cuda=False):
     cap.release()
 
 
-def detect_skimage(cfgfile, weightfile, imgfile, use_cuda=False):
+def detect_skimage(cfgfile, weightfile, imgfile, namesfiles=None, use_cuda=False):
     from skimage import io
     from skimage.transform import resize
     m = Darknet(cfgfile)
@@ -111,13 +114,14 @@ def detect_skimage(cfgfile, weightfile, imgfile, use_cuda=False):
     if use_cuda:
         m.cuda()
 
-    num_classes = m.num_classes
-    if num_classes == 20:
-        namesfile = VOC_NAMES
-    elif num_classes == 80:
-        namesfile = COCO_NAMES
-    else:
-        namesfile = 'data/x.names'
+    if namesfiles is None:
+        num_classes = m.num_classes
+        if num_classes == 20:
+            namesfile = VOC_NAMES
+        elif num_classes == 80:
+            namesfile = COCO_NAMES
+        else:
+            namesfile = 'data/x.names'
     class_names = load_class_names(namesfile)
 
     img = io.imread(imgfile)
@@ -138,8 +142,9 @@ def get_args():
     parser.add_argument('-cfgfile', type=str, default='./cfg/yolov4.cfg',
                         help='path of cfg file', dest='cfgfile')
     parser.add_argument('-weightfile', type=str,
-                        default='./checkpoints/Yolov4_epoch1.pth',
                         help='path of trained model.', dest='weightfile')
+    parser.add_argument('-namesfile', type=str,
+                        help='path of your names file.', dest='namesfile')
     parser.add_argument('-imgfile', type=str,
                         default='./data/mscoco2017/train2017/190109_180343_00154162.jpg',
                         help='path of your image file.', dest='imgfile')
@@ -151,13 +156,19 @@ def get_args():
 
 def main():
     args = get_args()
+
+    if not args.weightfile or not os.path.exists(args.weightfile):
+        weightfile = download_weights(dest_path=args.weightfile)
+    else:
+        weightfile = args.weightfile
+
     if args.imgfile:
-        detect_cv2(args.cfgfile, args.weightfile, args.imgfile, args.use_cuda)
+        detect_cv2(args.cfgfile, weightfile, args.imgfile, namesfile=args.namesfile, use_cuda=args.use_cuda)
         # detect_imges(args.cfgfile, args.weightfile, args.use_cuda)
         # detect_cv2(args.cfgfile, args.weightfile, args.imgfile, args.use_cuda)
         # detect_skimage(args.cfgfile, args.weightfile, args.imgfile, args.use_cuda)
     else:
-        detect_cv2_camera(args.cfgfile, args.weightfile, args.use_cuda)
+        detect_cv2_camera(args.cfgfile, args.weightfile, namesfile=args.namesfile, use_cuda=args.use_cuda)
 
 
 if __name__ == '__main__':

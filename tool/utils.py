@@ -125,6 +125,11 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
         if len(box) >= 7 and class_names:
             cls_conf = box[5]
             cls_id = box[6]
+
+            if cls_id > len(class_names):
+                print('ClassID %d not found' % cls_id)
+                continue
+
             print('%s: %f' % (class_names[cls_id], cls_conf))
             classes = len(class_names)
             offset = cls_id * 123457 % classes
