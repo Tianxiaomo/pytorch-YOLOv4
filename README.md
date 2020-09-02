@@ -76,7 +76,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
      python train.py -g [GPU_ID] -dir [Dataset direction] ...
     ```
 
-# 2. Inference (Evolving)
+# 2. Inference
 
 ## 2.1 Performance on MS COCO dataset (using pretrained DarknetWeights from <https://github.com/AlexeyAB/darknet>)
 
@@ -140,7 +140,7 @@ There are 2 inference outputs.
 Until now, still a small piece of post-processing including NMS is required. We are trying to minimize time and complexity of post-processing.
 
 
-# 3. Darknet2ONNX (Evolving)
+# 3. Darknet2ONNX
 
 - **This script is to convert the official pretrained darknet model into ONNX**
 
@@ -167,7 +167,7 @@ Until now, still a small piece of post-processing including NMS is required. We 
     - Dynamic batch size will generate only one ONNX model
     - Static batch size will generate 2 ONNX models, one is for running the demo (batch_size=1)
 
-# 4. Pytorch2ONNX (Evolving)
+# 4. Pytorch2ONNX
 
 - **You can convert your trained pytorch model into ONNX using this script**
 
@@ -201,7 +201,7 @@ Until now, still a small piece of post-processing including NMS is required. We 
     - Static batch size will generate 2 ONNX models, one is for running the demo (batch_size=1)
 
 
-# 5. ONNX2TensorRT (Evolving)
+# 5. ONNX2TensorRT
 
 - **TensorRT version Recommended: 7.0, 7.1**
 
