@@ -5,7 +5,7 @@ BASEDIR = os.path.dirname(os.path.abspath(__file__))
 VERSION = open(os.path.join(BASEDIR, 'VERSION')).read().strip()
 
 BASE_DEPENDENCIES = [
-    'numpy==1.17.5',
+    'numpy>=1.19',
     'torch>=1.4.0',
     'tensorboardX>=2.0',
     'scikit_image>=0.16.2',
@@ -14,7 +14,7 @@ BASE_DEPENDENCIES = [
     'easydict>=1.9',
     'Pillow>=7.1.2',
     'opencv_python',
-    'wf-pycocotools>=2.0.1.2',
+    'wf-pycocotools==2.0.1.1',
     'googledrivedownloader>=0.4'
 ]
 
@@ -37,7 +37,6 @@ def long_description():
 setup(
     name='wf-pytorch-yolo-v4',
     packages=find_packages(exclude=('tool.*', 'tool')),
-    package_data={'yolov4': ['../cfg/*.cfg', '../data/*.names']},
     version=VERSION,
     include_package_data=True,
     description='Forked version of a minimal PyTorch implementation of YOLOv4',

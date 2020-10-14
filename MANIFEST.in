@@ -1,2 +1,5 @@
 include VERSION
 include README.md
+recursive-include yolov4/cfg *.cfg
+recursive-include yolov4/data *.names
+recursive-include yolov4/test *.names
