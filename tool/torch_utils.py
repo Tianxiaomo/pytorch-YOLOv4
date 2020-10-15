@@ -64,8 +64,9 @@ def convert2cpu_long(gpu_matrix):
     return torch.LongTensor(gpu_matrix.size()).copy_(gpu_matrix)
 
 
-
 def do_detect(model, img, conf_thresh, nms_thresh, cuda_device=torch.device('cpu'), profile=False):
+    torch.cuda.set_device(cuda_device)
+
     model.eval()
     t0 = time.time()
 
