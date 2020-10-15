@@ -1,14 +1,6 @@
-import sys
-import os
 import time
-import math
 import torch
 import numpy as np
-from torch.autograd import Variable
-
-import itertools
-import struct  # get_image_size
-import imghdr  # get_image_size
 
 from .utils import post_processing
 
@@ -73,7 +65,7 @@ def convert2cpu_long(gpu_matrix):
 
 
 
-def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1, profile=False):
+def do_detect(model, img, conf_thresh, nms_thresh, cuda_device=torch.device('cpu'), profile=False):
     model.eval()
     t0 = time.time()
 
@@ -89,10 +81,9 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1, profile=False):
         print("unknown image type")
         exit(-1)
 
-    if use_cuda:
-        img = img.cuda()
+    img = img.to(cuda_device)
     img = torch.autograd.Variable(img)
-    
+
     t1 = time.time()
 
     output = model(img)

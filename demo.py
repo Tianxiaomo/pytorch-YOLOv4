@@ -22,7 +22,7 @@ from tool.weights import download_weights
 import argparse
 
 
-def detect_cv2(cfgfile, weightfile, imgfile, namesfile=None, use_cuda=False):
+def detect_cv2(cfgfile, weightfile, imgfile, namesfile=None, cuda_device=torch.device('cpu')):
     import cv2
     m = Darknet(cfgfile)
 
@@ -30,8 +30,7 @@ def detect_cv2(cfgfile, weightfile, imgfile, namesfile=None, use_cuda=False):
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
-    if use_cuda:
-        m.cuda()
+    m.to(cuda_device)
 
     if namesfile is None:
         num_classes = m.num_classes
@@ -49,7 +48,7 @@ def detect_cv2(cfgfile, weightfile, imgfile, namesfile=None, use_cuda=False):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.4, 0.6, use_cuda)
+        boxes = do_detect(m, sized, 0.4, 0.6, cuda_device=cuda_device)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
@@ -57,7 +56,7 @@ def detect_cv2(cfgfile, weightfile, imgfile, namesfile=None, use_cuda=False):
     plot_boxes_cv2(img, boxes[0], savename='predictions.jpg', class_names=class_names)
 
 
-def detect_cv2_camera(cfgfile, weightfile, namesfile=None, use_cuda=False):
+def detect_cv2_camera(cfgfile, weightfile, namesfile=None, cuda_device=torch.device('cpu')):
     import cv2
     m = Darknet(cfgfile)
 
@@ -65,8 +64,7 @@ def detect_cv2_camera(cfgfile, weightfile, namesfile=None, use_cuda=False):
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
-    if use_cuda:
-        m.cuda()
+    m.to(cuda_device)
 
     cap = cv2.VideoCapture(0)
     # cap = cv2.VideoCapture("./test.mp4")
@@ -90,7 +88,7 @@ def detect_cv2_camera(cfgfile, weightfile, namesfile=None, use_cuda=False):
         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
         start = time.time()
-        boxes = do_detect(m, sized, 0.4, 0.6, use_cuda)
+        boxes = do_detect(m, sized, 0.4, 0.6, cuda_device=cuda_device)
         finish = time.time()
         print('Predicted in %f seconds.' % (finish - start))
 
@@ -102,7 +100,7 @@ def detect_cv2_camera(cfgfile, weightfile, namesfile=None, use_cuda=False):
     cap.release()
 
 
-def detect_skimage(cfgfile, weightfile, imgfile, namesfiles=None, use_cuda=False):
+def detect_skimage(cfgfile, weightfile, imgfile, namesfiles=None, cuda_device=torch.device('cpu')):
     from skimage import io
     from skimage.transform import resize
     m = Darknet(cfgfile)
@@ -148,8 +146,11 @@ def get_args():
     parser.add_argument('-imgfile', type=str,
                         default='./data/mscoco2017/train2017/190109_180343_00154162.jpg',
                         help='path of your image file.', dest='imgfile')
-    parser.add_argument('--use-cuda', help='enable cuda', dest='use_cuda', action='store_true')
+    parser.add_argument('--gpus', type=str, dest='gpus', default="0",
+                        help='choose which cuda device to use by index and input comma to use multi gpus, e.g. 0,1,2,3. (input -1 for cpu only)')
     args = parser.parse_args()
+    args.gpus = [int(i) for i in args.gpus.split(',')] if torch.cuda.device_count() >= 1 else [-1]
+    args.device = torch.device("cuda:" + str(args.gpus[0]) if args.gpus[0] >= 0 else "cpu")
 
     return args
 
@@ -163,12 +164,12 @@ def main():
         weightfile = args.weightfile
 
     if args.imgfile:
-        detect_cv2(args.cfgfile, weightfile, args.imgfile, namesfile=args.namesfile, use_cuda=args.use_cuda)
+        detect_cv2(args.cfgfile, weightfile, args.imgfile, namesfile=args.namesfile, cuda_device=args.device)
         # detect_imges(args.cfgfile, args.weightfile, args.use_cuda)
         # detect_cv2(args.cfgfile, args.weightfile, args.imgfile, args.use_cuda)
         # detect_skimage(args.cfgfile, args.weightfile, args.imgfile, args.use_cuda)
     else:
-        detect_cv2_camera(args.cfgfile, args.weightfile, namesfile=args.namesfile, use_cuda=args.use_cuda)
+        detect_cv2_camera(args.cfgfile, args.weightfile, namesfile=args.namesfile, cuda_device=args.device)
 
 
 if __name__ == '__main__':

@@ -264,6 +264,8 @@ class Darknet(nn.Module):
                     model.add_module('relu{0}'.format(conv_id), nn.ReLU(inplace=True))
                 elif activation == 'mish':
                     model.add_module('mish{0}'.format(conv_id), Mish())
+                elif activation == 'linear':
+                    pass
                 else:
                     print("convolutional conversion function doesn't handle activation module '{}'".format(activation))
 
