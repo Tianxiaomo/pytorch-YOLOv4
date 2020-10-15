@@ -104,6 +104,7 @@ def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, nH, nW,
 class RegionLoss(nn.Module):
     def __init__(self, num_classes=0, anchors=[], num_anchors=1, cuda_device=torch.device('cpu')):
         super(RegionLoss, self).__init__()
+        self.cuda_device = cuda_device
         self.num_classes = num_classes
         self.anchors = anchors
         self.num_anchors = num_anchors
