@@ -24,7 +24,7 @@ import argparse
 
 def detect_cv2(cfgfile, weightfile, imgfile, namesfile=None, cuda_device=torch.device('cpu')):
     import cv2
-    m = Darknet(cfgfile)
+    m = Darknet(cfgfile, cuda_device=cuda_device)
 
     m.print_network()
     m.load_weights(weightfile)
@@ -109,8 +109,7 @@ def detect_skimage(cfgfile, weightfile, imgfile, namesfiles=None, cuda_device=to
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
-    if use_cuda:
-        m.cuda()
+    m.to(cuda_device)
 
     if namesfiles is None:
         num_classes = m.num_classes
@@ -127,7 +126,7 @@ def detect_skimage(cfgfile, weightfile, imgfile, namesfiles=None, cuda_device=to
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.4, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.4, 0.4, cuda_device)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
