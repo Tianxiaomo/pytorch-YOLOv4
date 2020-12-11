@@ -424,9 +424,9 @@ def get_image_id(filename:str) -> int:
     >>> return int(lv+no)
     """
     raise NotImplementedError("Create your own 'get_image_id' function")
-    lv, no = os.path.splitext(os.path.basename(filename))[0].split("_")
-    lv = lv.replace("level", "")
-    no = f"{int(no):04d}"
+    no = os.path.splitext(os.path.basename(filename))[0]
+    no = f"{int(no):05d}"
+    lv =str(1)
     return int(lv+no)
 
 
