@@ -273,6 +273,7 @@ def loadRes(self, resFile):
     elif 'bbox' in anns[0] and not anns[0]['bbox'] == []:
         res.dataset['categories'] = copy.deepcopy(self.dataset['categories'])
         for id, ann in enumerate(anns):
+            ann['bbox'] = ann['bbox'][0]
             bb = ann['bbox']
             x1, x2, y1, y2 = [bb[0], bb[0] + bb[2], bb[1], bb[1] + bb[3]]
             if 'segmentation' not in ann:
