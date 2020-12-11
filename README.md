@@ -4,8 +4,8 @@
 ![](https://img.shields.io/static/v1?label=pytorch&message=1.4&color=<COLOR>)
 [![](https://img.shields.io/static/v1?label=license&message=Apache2&color=green)](./License.txt)
 
-Add own xml to yolov4 train.txt
-match the coco evaluate shape requirement
+-Add own xml to yolov4 train.txt
+-match the coco evaluate shape requirement
 
 A minimal PyTorch implementation of YOLOv4.
 - Paper Yolo v4: https://arxiv.org/abs/2004.10934
