@@ -127,6 +127,8 @@ def detect_skimage(cfgfile, weightfile, imgfile):
     for i in range(2):
         start = time.time()
         boxes = do_detect(m, sized, 0.4, 0.4, use_cuda)
+        print(boxes[0].shape)
+        print(boxes[1].shape)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
