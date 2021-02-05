@@ -158,7 +158,7 @@ Until now, still a small piece of post-processing including NMS is required. We 
 - **Run python script to generate ONNX model and run the demo**
 
     ```sh
-    python demo_darknet2onnx.py <cfgFile> <weightFile> <imageFile> <batchSize>
+    python demo_darknet2onnx.py <cfgFile> <namesFile> <weightFile> <imageFile> <batchSize>
     ```
 
 ## 3.1 Dynamic or static batch size
