@@ -59,9 +59,9 @@ tensorboard --logdir log --host 192.168.212.75 --port 6008
 # 5. 验证
 
 ```
-python model.py 3 weight/Yolov4_epoch166_coins.pth data/coin2.jpg data/coins.names
+python models.py 3 weight/Yolov4_epoch166_coins.pth data/coin2.jpg 608 608 data/coins.names
 
-python model.py num_classes weightfile imagepath namefile
+python models.py num_classes weightfile imagepath height width namefile
 ```
 coins.names
 ```
