@@ -133,7 +133,7 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
             blue = get_color(0, offset, classes)
             if color is None:
                 rgb = (red, green, blue)
-            msg = str(class_names[cls_id])+" "+str(cls_conf)
+            msg = str(class_names[cls_id])+" "+str(round(cls_conf,3))
             t_size = cv2.getTextSize(msg, 0, 0.7, thickness=bbox_thick // 2)[0]
             c1, c2 = (x1,y1), (x2, y2)
             c3 = (c1[0] + t_size[0], c1[1] - t_size[1] - 3)
