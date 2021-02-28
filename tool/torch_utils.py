@@ -10,7 +10,7 @@ import itertools
 import struct  # get_image_size
 import imghdr  # get_image_size
 
-from tool import utils 
+from tool.utils import post_processing
 
 
 def bbox_ious(boxes1, boxes2, x1y1x2y2=True):
@@ -100,5 +100,5 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
     print('      Model Inference : %f' % (t2 - t1))
     print('-----------------------------------')
 
-    return utils.post_processing(img, conf_thresh, nms_thresh, output)
+    return post_processing(img, conf_thresh, nms_thresh, output)
 
