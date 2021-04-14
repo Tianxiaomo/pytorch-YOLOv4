@@ -22,7 +22,7 @@ import argparse
 """hyper parameters"""
 use_cuda = True
 
-def detect_cv2(cfgfile, weightfile, imgfile):
+def detect_cv2(cfgfile, weightfile, imgfile, namesfile=None):
     import cv2
     m = Darknet(cfgfile)
 
@@ -33,13 +33,14 @@ def detect_cv2(cfgfile, weightfile, imgfile):
     if use_cuda:
         m.cuda()
 
-    num_classes = m.num_classes
-    if num_classes == 20:
-        namesfile = 'data/voc.names'
-    elif num_classes == 80:
-        namesfile = 'data/coco.names'
-    else:
-        namesfile = 'data/x.names'
+    if namesfile is None:
+        num_classes = m.num_classes
+        if num_classes == 20:
+            namesfile = 'data/voc.names'
+        elif num_classes == 80:
+            namesfile = 'data/coco.names'
+        else:
+            namesfile = 'data/x.names'
     class_names = load_class_names(namesfile)
 
     img = cv2.imread(imgfile)
@@ -48,15 +49,15 @@ def detect_cv2(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.4, 0.6, use_cuda)
+        boxes = do_detect(m, sized, 0.15, 0.2, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
 
-    plot_boxes_cv2(img, boxes[0], savename='predictions.jpg', class_names=class_names)
+    plot_boxes_cv2(img, boxes[0], savename='predictions_demopy.jpg', class_names=class_names)
 
 
-def detect_cv2_camera(cfgfile, weightfile):
+def detect_cv2_camera(cfgfile, weightfile, namesfile=None):
     import cv2
     m = Darknet(cfgfile)
 
@@ -73,13 +74,14 @@ def detect_cv2_camera(cfgfile, weightfile):
     cap.set(4, 720)
     print("Starting the YOLO loop...")
 
-    num_classes = m.num_classes
-    if num_classes == 20:
-        namesfile = 'data/voc.names'
-    elif num_classes == 80:
-        namesfile = 'data/coco.names'
-    else:
-        namesfile = 'data/x.names'
+    if namesfile is None:
+        num_classes = m.num_classes
+        if num_classes == 20:
+            namesfile = 'data/voc.names'
+        elif num_classes == 80:
+            namesfile = 'data/coco.names'
+        else:
+            namesfile = 'data/x.names'
     class_names = load_class_names(namesfile)
 
     while True:
@@ -100,7 +102,7 @@ def detect_cv2_camera(cfgfile, weightfile):
     cap.release()
 
 
-def detect_skimage(cfgfile, weightfile, imgfile):
+def detect_skimage(cfgfile, weightfile, imgfile, namesfile=None):
     from skimage import io
     from skimage.transform import resize
     m = Darknet(cfgfile)
@@ -112,13 +114,14 @@ def detect_skimage(cfgfile, weightfile, imgfile):
     if use_cuda:
         m.cuda()
 
-    num_classes = m.num_classes
-    if num_classes == 20:
-        namesfile = 'data/voc.names'
-    elif num_classes == 80:
-        namesfile = 'data/coco.names'
-    else:
-        namesfile = 'data/x.names'
+    if namesfile is None:
+        num_classes = m.num_classes
+        if num_classes == 20:
+            namesfile = 'data/voc.names'
+        elif num_classes == 80:
+            namesfile = 'data/coco.names'
+        else:
+            namesfile = 'data/x.names'
     class_names = load_class_names(namesfile)
 
     img = io.imread(imgfile)
@@ -126,12 +129,12 @@ def detect_skimage(cfgfile, weightfile, imgfile):
 
     for i in range(2):
         start = time.time()
-        boxes = do_detect(m, sized, 0.4, 0.4, use_cuda)
+        boxes = do_detect(m, sized, 0.15, 0.15, use_cuda)
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
 
-    plot_boxes_cv2(img, boxes, savename='predictions.jpg', class_names=class_names)
+    plot_boxes_cv2(img, boxes, savename='predictions_demopy.jpg', class_names=class_names)
 
 
 def get_args():
@@ -144,6 +147,8 @@ def get_args():
     parser.add_argument('-imgfile', type=str,
                         default='./data/mscoco2017/train2017/190109_180343_00154162.jpg',
                         help='path of your image file.', dest='imgfile')
+    parser.add_argument('-class_names', type=str, default=None,
+                        help='path to file containing class names')
     args = parser.parse_args()
 
     return args
@@ -152,9 +157,9 @@ def get_args():
 if __name__ == '__main__':
     args = get_args()
     if args.imgfile:
-        detect_cv2(args.cfgfile, args.weightfile, args.imgfile)
-        # detect_imges(args.cfgfile, args.weightfile)
-        # detect_cv2(args.cfgfile, args.weightfile, args.imgfile)
-        # detect_skimage(args.cfgfile, args.weightfile, args.imgfile)
+        detect_cv2(args.cfgfile, args.weightfile, args.imgfile, args.class_names)
+        # detect_imges(args.cfgfile, args.weightfile, args.class_names)
+        # detect_cv2(args.cfgfile, args.weightfile, args.imgfile, args.class_names)
+        # detect_skimage(args.cfgfile, args.weightfile, args.imgfile, args.class_names)
     else:
-        detect_cv2_camera(args.cfgfile, args.weightfile)
+        detect_cv2_camera(args.cfgfile, args.weightfile, args.class_names)
