@@ -267,7 +267,7 @@ class Darknet(nn.Module):
                 elif activation == 'linear':
                     model.add_module('linear{0}'.format(conv_id), nn.Identity())
                 else:
-                    print("convolution has not activate {}".format(activation))
+                    print("Convolution has not activate {}".format(activation))
 
                 prev_filters = filters
                 out_filters.append(prev_filters)
