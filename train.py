@@ -25,7 +25,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch import optim
 from torch.nn import functional as F
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 from easydict import EasyDict as edict
 
 from dataset import Yolo_dataset
@@ -128,11 +128,12 @@ def bboxes_iou(bboxes_a, bboxes_b, xyxy=True, GIoU=False, DIoU=False, CIoU=False
 
 
 class Yolo_loss(nn.Module):
-    def __init__(self, n_classes=80, n_anchors=3, device=None, batch=2):
+    def __init__(self, n_classes=80, n_anchors=3, device=None, width=608, height=608, batch=2):
         super(Yolo_loss, self).__init__()
         self.device = device
         self.strides = [8, 16, 32]
-        image_size = 608
+        self.image_size1 = width
+        self.image_size2 = height
         self.n_classes = n_classes
         self.n_anchors = n_anchors
 
@@ -149,12 +150,13 @@ class Yolo_loss(nn.Module):
             ref_anchors[:, 2:] = np.array(all_anchors_grid, dtype=np.float32)
             ref_anchors = torch.from_numpy(ref_anchors)
             # calculate pred - xywh obj cls
-            fsize = image_size // self.strides[i]
-            grid_x = torch.arange(fsize, dtype=torch.float).repeat(batch, 3, fsize, 1).to(device)
-            grid_y = torch.arange(fsize, dtype=torch.float).repeat(batch, 3, fsize, 1).permute(0, 1, 3, 2).to(device)
-            anchor_w = torch.from_numpy(masked_anchors[:, 0]).repeat(batch, fsize, fsize, 1).permute(0, 3, 1, 2).to(
+            fsize1 = self.image_size1 // self.strides[i]
+            fsize2 = self.image_size2 // self.strides[i]
+            grid_x = torch.arange(fsize1, dtype=torch.float).repeat(batch, 3, fsize2, 1).to(device)
+            grid_y = torch.arange(fsize2, dtype=torch.float).repeat(batch, 3, fsize1, 1).permute(0, 1, 3, 2).to(device)
+            anchor_w = torch.from_numpy(masked_anchors[:, 0]).repeat(batch, fsize2, fsize1, 1).permute(0, 3, 1, 2).to(
                 device)
-            anchor_h = torch.from_numpy(masked_anchors[:, 1]).repeat(batch, fsize, fsize, 1).permute(0, 3, 1, 2).to(
+            anchor_h = torch.from_numpy(masked_anchors[:, 1]).repeat(batch, fsize2, fsize1, 1).permute(0, 3, 1, 2).to(
                 device)
 
             self.masked_anchors.append(masked_anchors)
@@ -164,12 +166,12 @@ class Yolo_loss(nn.Module):
             self.anchor_w.append(anchor_w)
             self.anchor_h.append(anchor_h)
 
-    def build_target(self, pred, labels, batchsize, fsize, n_ch, output_id):
+    def build_target(self, pred, labels, batchsize, fsize1, fsize2, n_ch, output_id):
         # target assignment
-        tgt_mask = torch.zeros(batchsize, self.n_anchors, fsize, fsize, 4 + self.n_classes).to(device=self.device)
-        obj_mask = torch.ones(batchsize, self.n_anchors, fsize, fsize).to(device=self.device)
-        tgt_scale = torch.zeros(batchsize, self.n_anchors, fsize, fsize, 2).to(self.device)
-        target = torch.zeros(batchsize, self.n_anchors, fsize, fsize, n_ch).to(self.device)
+        tgt_mask = torch.zeros(batchsize, self.n_anchors, fsize2, fsize1, 4 + self.n_classes).to(device=self.device)
+        obj_mask = torch.ones(batchsize, self.n_anchors, fsize2, fsize1).to(device=self.device)
+        tgt_scale = torch.zeros(batchsize, self.n_anchors, fsize2, fsize1, 2).to(self.device)
+        target = torch.zeros(batchsize, self.n_anchors, fsize2, fsize1, n_ch).to(self.device)
 
         # labels = labels.cpu().data
         nlabel = (labels.sum(dim=2) > 0).sum(dim=1)  # number of objects
@@ -229,29 +231,31 @@ class Yolo_loss(nn.Module):
                         truth_h_all[b, ti] / torch.Tensor(self.masked_anchors[output_id])[best_n[ti], 1] + 1e-16)
                     target[b, a, j, i, 4] = 1
                     target[b, a, j, i, 5 + labels[b, ti, 4].to(torch.int16).cpu().numpy()] = 1
-                    tgt_scale[b, a, j, i, :] = torch.sqrt(2 - truth_w_all[b, ti] * truth_h_all[b, ti] / fsize / fsize)
+                    tgt_scale[b, a, j, i, :] = torch.sqrt(2 - truth_w_all[b, ti] * truth_h_all[b, ti] / fsize2 / fsize1)
         return obj_mask, tgt_mask, tgt_scale, target
 
     def forward(self, xin, labels=None):
         loss, loss_xy, loss_wh, loss_obj, loss_cls, loss_l2 = 0, 0, 0, 0, 0, 0
         for output_id, output in enumerate(xin):
             batchsize = output.shape[0]
-            fsize = output.shape[2]
+            fsize2 = output.shape[2]
+            fsize1 = output.shape[3]
             n_ch = 5 + self.n_classes
 
-            output = output.view(batchsize, self.n_anchors, n_ch, fsize, fsize)
+            output = output.view(batchsize, self.n_anchors, n_ch, fsize2, fsize1)
             output = output.permute(0, 1, 3, 4, 2)  # .contiguous()
 
             # logistic activation for xy, obj, cls
             output[..., np.r_[:2, 4:n_ch]] = torch.sigmoid(output[..., np.r_[:2, 4:n_ch]])
 
+            #output.shape = 4, 3, 52, 64, 6
             pred = output[..., :4].clone()
             pred[..., 0] += self.grid_x[output_id]
             pred[..., 1] += self.grid_y[output_id]
             pred[..., 2] = torch.exp(pred[..., 2]) * self.anchor_w[output_id]
             pred[..., 3] = torch.exp(pred[..., 3]) * self.anchor_h[output_id]
 
-            obj_mask, tgt_mask, tgt_scale, target = self.build_target(pred, labels, batchsize, fsize, n_ch, output_id)
+            obj_mask, tgt_mask, tgt_scale, target = self.build_target(pred, labels, batchsize, fsize1, fsize2, n_ch, output_id)
 
             # loss calculation
             output[..., 4] *= obj_mask
@@ -354,7 +358,7 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
         )
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, burnin_schedule)
 
-    criterion = Yolo_loss(device=device, batch=config.batch // config.subdivisions, n_classes=config.classes)
+    criterion = Yolo_loss(device=device, width=config.width, height=config.height, batch=config.batch // config.subdivisions, n_classes=config.classes)
     # scheduler = ReduceLROnPlateau(optimizer, mode='max', verbose=True, patience=6, min_lr=1e-7)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, 0.001, 1e-6, 20)
 
@@ -537,11 +541,12 @@ def get_args(**kwargs):
                         help='Load model from a .pth file')
     parser.add_argument('-g', '--gpu', metavar='G', type=str, default='-1',
                         help='GPU', dest='gpu')
-    parser.add_argument('-dir', '--data-dir', type=str, default=None,
+    parser.add_argument('-dir', '--data-dir', type=str, default='C:/home/labo/ML_projects/2021/pytorch-YOLOv4-master/dataset_sewing_machines_20210514',
                         help='dataset dir', dest='dataset_dir')
-    parser.add_argument('-pretrained', type=str, default=None, help='pretrained yolov4.conv.137')
-    parser.add_argument('-classes', type=int, default=80, help='dataset classes')
-    parser.add_argument('-train_label_path', dest='train_label', type=str, default='train.txt', help="train label path")
+    parser.add_argument('-pretrained', type=str, default='./pretrained_models/yolov4.conv.137.pth', help='pretrained yolov4.conv.137')
+    parser.add_argument('-classes', type=int, default=1, help='dataset classes')
+    parser.add_argument('-train_label_path', dest='train_label', type=str, default='./dataset_sewing_machines_20210514/train_ref1.txt', help="train label path")
+    parser.add_argument('-val_label_path', dest='val_label', type=str, default='./dataset_sewing_machines_20210514/train_ref1.txt', help="val label path")
     parser.add_argument(
         '-optimizer', type=str, default='adam',
         help='training optimizer',
@@ -551,7 +556,7 @@ def get_args(**kwargs):
         help='iou type (iou, giou, diou, ciou)',
         dest='iou_type')
     parser.add_argument(
-        '-keep-checkpoint-max', type=int, default=10,
+        '-keep-checkpoint-max', type=int, default=5,
         help='maximum number of checkpoints to keep. If set 0, all checkpoints will be kept',
         dest='keep_checkpoint_max')
     args = vars(parser.parse_args())
@@ -606,7 +611,7 @@ def _get_date_str():
 if __name__ == "__main__":
     logging = init_logger(log_dir='log')
     cfg = get_args(**Cfg)
-    os.environ["CUDA_VISIBLE_DEVICES"] = cfg.gpu
+    #os.environ["CUDA_VISIBLE_DEVICES"] = cfg.gpu
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Using device {device}')
 
