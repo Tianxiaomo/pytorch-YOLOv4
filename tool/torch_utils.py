@@ -75,30 +75,31 @@ def convert2cpu_long(gpu_matrix):
 
 def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1):
     model.eval()
-    t0 = time.time()
+    with torch.no_grad():
+        t0 = time.time()
 
-    if type(img) == np.ndarray and len(img.shape) == 3:  # cv2 image
-        img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
-    elif type(img) == np.ndarray and len(img.shape) == 4:
-        img = torch.from_numpy(img.transpose(0, 3, 1, 2)).float().div(255.0)
-    else:
-        print("unknow image type")
-        exit(-1)
+        if type(img) == np.ndarray and len(img.shape) == 3:  # cv2 image
+            img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
+        elif type(img) == np.ndarray and len(img.shape) == 4:
+            img = torch.from_numpy(img.transpose(0, 3, 1, 2)).float().div(255.0)
+        else:
+            print("unknow image type")
+            exit(-1)
 
-    if use_cuda:
-        img = img.cuda()
-    img = torch.autograd.Variable(img)
-    
-    t1 = time.time()
+        if use_cuda:
+            img = img.cuda()
+        img = torch.autograd.Variable(img)
 
-    output = model(img)
+        t1 = time.time()
 
-    t2 = time.time()
+        output = model(img)
 
-    print('-----------------------------------')
-    print('           Preprocess : %f' % (t1 - t0))
-    print('      Model Inference : %f' % (t2 - t1))
-    print('-----------------------------------')
+        t2 = time.time()
 
-    return utils.post_processing(img, conf_thresh, nms_thresh, output)
+        print('-----------------------------------')
+        print('           Preprocess : %f' % (t1 - t0))
+        print('      Model Inference : %f' % (t2 - t1))
+        print('-----------------------------------')
+
+        return utils.post_processing(img, conf_thresh, nms_thresh, output)
 
