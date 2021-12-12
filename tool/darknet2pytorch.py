@@ -113,7 +113,7 @@ class GlobalAvgPool2d(nn.Module):
         return x
 
 
-# for route and shortcut
+# for route, shortcut and sam
 class EmptyModule(nn.Module):
     def __init__(self):
         super(EmptyModule, self).__init__()
@@ -200,6 +200,13 @@ class Darknet(nn.Module):
                 elif activation == 'relu':
                     x = F.relu(x, inplace=True)
                 outputs[ind] = x
+            elif block['type'] == 'sam':
+                from_layer = int(block['from'])
+                from_layer = from_layer if from_layer > 0 else from_layer + ind
+                x1 = outputs[from_layer]
+                x2 = outputs[ind - 1]
+                x = x1 * x2
+                outputs[ind] = x
             elif block['type'] == 'region':
                 continue
                 if self.loss:
@@ -266,8 +273,10 @@ class Darknet(nn.Module):
                     model.add_module('mish{0}'.format(conv_id), Mish())
                 elif activation == 'linear':
                     model.add_module('linear{0}'.format(conv_id), nn.Identity())
+                elif activation == 'logistic':
+                    model.add_module('sigmoid{0}'.format(conv_id), nn.Sigmoid())
                 else:
-                    print("Convolution has not activate {}".format(activation))
+                    print("No convolutional activation named {}".format(activation))
 
                 prev_filters = filters
                 out_filters.append(prev_filters)
@@ -353,6 +362,13 @@ class Darknet(nn.Module):
                 out_strides.append(prev_stride)
                 models.append(EmptyModule())
             elif block['type'] == 'shortcut':
+                ind = len(models)
+                prev_filters = out_filters[ind - 1]
+                out_filters.append(prev_filters)
+                prev_stride = out_strides[ind - 1]
+                out_strides.append(prev_stride)
+                models.append(EmptyModule())
+            elif block['type'] == 'sam':
                 ind = len(models)
                 prev_filters = out_filters[ind - 1]
                 out_filters.append(prev_filters)
@@ -452,6 +468,8 @@ class Darknet(nn.Module):
                 pass
             elif block['type'] == 'shortcut':
                 pass
+            elif block['type'] == 'sam':
+                pass
             elif block['type'] == 'region':
                 pass
             elif block['type'] == 'yolo':
@@ -500,6 +518,8 @@ class Darknet(nn.Module):
     #         elif block['type'] == 'route':
     #             pass
     #         elif block['type'] == 'shortcut':
+    #             pass
+    #         elif block['type'] == 'sam':
     #             pass
     #         elif block['type'] == 'region':
     #             pass

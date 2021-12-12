@@ -447,7 +447,10 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
                 except OSError:
                     pass
                 save_path = os.path.join(config.checkpoints, f'{save_prefix}{epoch + 1}.pth')
-                torch.save(model.state_dict(), save_path)
+                if isinstance(model, torch.nn.DataParallel):
+                    torch.save(model.moduel,state_dict(), save_path)
+                else:
+                    torch.save(model.state_dict(), save_path)
                 logging.info(f'Checkpoint {epoch + 1} saved !')
                 saved_models.append(save_path)
                 if len(saved_models) > config.keep_checkpoint_max > 0:
@@ -625,7 +628,10 @@ if __name__ == "__main__":
               epochs=cfg.TRAIN_EPOCHS,
               device=device, )
     except KeyboardInterrupt:
-        torch.save(model.state_dict(), 'INTERRUPTED.pth')
+        if isinstance(model, torch.nn.DataParallel):
+            torch.save(model.module.state_dict(), 'INTERRUPTED.pth')
+        else:
+            torch.save(model.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')
         try:
             sys.exit(0)
