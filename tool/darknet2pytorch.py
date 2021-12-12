@@ -271,10 +271,12 @@ class Darknet(nn.Module):
                     model.add_module('relu{0}'.format(conv_id), nn.ReLU(inplace=True))
                 elif activation == 'mish':
                     model.add_module('mish{0}'.format(conv_id), Mish())
+                elif activation == 'linear':
+                    pass
                 elif activation == 'logistic':
                     model.add_module('sigmoid{0}'.format(conv_id), nn.Sigmoid())
                 else:
-                    print("convalution havn't activate {}".format(activation))
+                    print("No convolutional activation named {}".format(activation))
 
                 prev_filters = filters
                 out_filters.append(prev_filters)
