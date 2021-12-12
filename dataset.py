@@ -240,7 +240,7 @@ def draw_box(img, bboxes):
 
 
 class Yolo_dataset(Dataset):
-    def __init__(self, lable_path, cfg, train=True):
+    def __init__(self, label_path, cfg, train=True):
         super(Yolo_dataset, self).__init__()
         if cfg.mixup == 2:
             print("cutmix=1 - isn't supported for Detector")
@@ -253,7 +253,7 @@ class Yolo_dataset(Dataset):
         self.train = train
 
         truth = {}
-        f = open(lable_path, 'r', encoding='utf-8')
+        f = open(label_path, 'r', encoding='utf-8')
         for line in f.readlines():
             data = line.split(" ")
             truth[data[0]] = []
