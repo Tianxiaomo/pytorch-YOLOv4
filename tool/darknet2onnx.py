@@ -3,7 +3,7 @@ import torch
 from tool.darknet2pytorch import Darknet
 
 
-def transform_to_onnx(cfgfile, weightfile, batch_size=1):
+def transform_to_onnx(cfgfile, weightfile, batch_size=1, onnx_file_name=None):
     model = Darknet(cfgfile)
 
     model.print_network()
@@ -19,7 +19,8 @@ def transform_to_onnx(cfgfile, weightfile, batch_size=1):
 
     if dynamic:
         x = torch.randn((1, 3, model.height, model.width), requires_grad=True)
-        onnx_file_name = "yolov4_-1_3_{}_{}_dynamic.onnx".format(model.height, model.width)
+        if not onnx_file_name:
+            onnx_file_name = "yolov4_-1_3_{}_{}_dynamic.onnx".format(model.height, model.width)
         dynamic_axes = {"input": {0: "batch_size"}, "boxes": {0: "batch_size"}, "confs": {0: "batch_size"}}
         # Export the model
         print('Export the onnx model ...')
@@ -52,23 +53,12 @@ def transform_to_onnx(cfgfile, weightfile, batch_size=1):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 3:
-        cfgfile = sys.argv[1]
-        weightfile = sys.argv[2]
-        transform_to_onnx(cfgfile, weightfile)
-    elif len(sys.argv) == 4:
-        cfgfile = sys.argv[1]
-        weightfile = sys.argv[2]
-        batch_size = int(sys.argv[3])
-        transform_to_onnx(cfgfile, weightfile, batch_size)
-    elif len(sys.argv) == 5:
-        cfgfile = sys.argv[1]
-        weightfile = sys.argv[2]
-        batch_size = int(sys.argv[3])
-        dynamic = True if sys.argv[4] == 'True' else False
-        transform_to_onnx(cfgfile, weightfile, batch_size, dynamic)
-    else:
-        print('Please execute this script this way:\n')
-        print('  python darknet2onnx.py <cfgFile> <weightFile>')
-        print('or')
-        print('  python darknet2onnx.py <cfgFile> <weightFile> <batchSize>')
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('config')
+    parser.add_argument('weightfile')
+    parser.add_argument('--batch_size', type=int, help="Static Batchsize of the model. use batch_size<=0 for dynamic batch size")
+    parser.add_argument('--onnx_file_path', help="Output onnx file path")
+    args = parser.parse_args()
+    transform_to_onnx(args.config, args.weightfile, args.batch_size, args.onnx_file_path)
+
