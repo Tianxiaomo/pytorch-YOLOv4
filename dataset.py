@@ -240,7 +240,7 @@ def draw_box(img, bboxes):
 
 
 class Yolo_dataset(Dataset):
-    def __init__(self, lable_path, cfg, train=True):
+    def __init__(self, label_path, cfg, train=True):
         super(Yolo_dataset, self).__init__()
         if cfg.mixup == 2:
             print("cutmix=1 - isn't supported for Detector")
@@ -253,7 +253,7 @@ class Yolo_dataset(Dataset):
         self.train = train
 
         truth = {}
-        f = open(lable_path, 'r', encoding='utf-8')
+        f = open(label_path, 'r', encoding='utf-8')
         for line in f.readlines():
             data = line.split(" ")
             truth[data[0]] = []
@@ -423,11 +423,18 @@ def get_image_id(filename:str) -> int:
     >>> no = f"{int(no):04d}"
     >>> return int(lv+no)
     """
-    raise NotImplementedError("Create your own 'get_image_id' function")
-    lv, no = os.path.splitext(os.path.basename(filename))[0].split("_")
-    lv = lv.replace("level", "")
-    no = f"{int(no):04d}"
-    return int(lv+no)
+    # raise NotImplementedError("Create your own 'get_image_id' function")
+    # lv, no = os.path.splitext(os.path.basename(filename))[0].split("_")
+    # lv = lv.replace("level", "")
+    # no = f"{int(no):04d}"
+    # return int(lv+no)
+
+    print("You could also create your own 'get_image_id' function.")
+    # print(filename)
+    parts = filename.split('/')
+    id = int(parts[-1][0:-4])
+    # print(id)
+    return id
 
 
 if __name__ == "__main__":
