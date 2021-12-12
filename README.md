@@ -16,7 +16,7 @@ A minimal PyTorch implementation of YOLOv4.
 
 - [x] Inference
 - [x] Train
-    - [x] Mocaic
+    - [x] Mosaic
 
 ```
 ├── README.md
@@ -32,7 +32,7 @@ A minimal PyTorch implementation of YOLOv4.
 ├── weight                --> darknet2pytorch
 ├── tool
 │   ├── camera.py           a demo camera
-│   ├── coco_annotatin.py       coco dataset generator
+│   ├── coco_annotation.py       coco dataset generator
 │   ├── config.py
 │   ├── darknet2pytorch.py
 │   ├── region_loss.py
@@ -65,7 +65,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
 1. Download weight
 2. Transform data
 
-    For coco dataset,you can use tool/coco_annotatin.py.
+    For coco dataset,you can use tool/coco_annotation.py.
     ```
     # train.txt
     image_path1 x1,y1,x2,y2,id x1,y1,x2,y2,id x1,y1,x2,y2,id ...
@@ -80,7 +80,7 @@ you can use darknet2pytorch to convert it yourself, or download my converted mod
      python train.py -g [GPU_ID] -dir [Dataset direction] ...
     ```
 
-# 2. Inference (Evolving)
+# 2. Inference
 
 ## 2.1 Performance on MS COCO dataset (using pretrained DarknetWeights from <https://github.com/AlexeyAB/darknet>)
 
@@ -93,7 +93,6 @@ See following sections for more details of conversions.
 | ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
 | DarkNet (YOLOv4 paper)|     0.471 |       0.710 |       0.510 |       0.278 |       0.525 |       0.636 |
 | Pytorch (TianXiaomo)|       0.466 |       0.704 |       0.505 |       0.267 |       0.524 |       0.629 |
-| ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
 | TensorRT FP32 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.637 |
 | TensorRT FP16 + BatchedNMSPlugin | 0.472| 0.708 |       0.511 |       0.273 |       0.530 |       0.636 |
 
@@ -103,7 +102,6 @@ See following sections for more details of conversions.
 | ------------------- | ----------: | ----------: | ----------: | ----------: | ----------: | ----------: |
 | DarkNet (YOLOv4 paper)|     0.412 |       0.628 |       0.443 |       0.204 |       0.444 |       0.560 |
 | Pytorch (TianXiaomo)|       0.404 |       0.615 |       0.436 |       0.196 |       0.438 |       0.552 |
-| ONNX                |    incoming |    incoming |    incoming |    incoming |    incoming |    incoming |
 | TensorRT FP32 + BatchedNMSPlugin | 0.412| 0.625 |       0.445 |       0.200 |       0.446 |       0.564 |
 | TensorRT FP16 + BatchedNMSPlugin | 0.412| 0.625 |       0.445 |       0.200 |       0.446 |       0.563 |
 
@@ -146,7 +144,7 @@ There are 2 inference outputs.
 Until now, still a small piece of post-processing including NMS is required. We are trying to minimize time and complexity of post-processing.
 
 
-# 3. Darknet2ONNX (Evolving)
+# 3. Darknet2ONNX
 
 - **This script is to convert the official pretrained darknet model into ONNX**
 
@@ -164,15 +162,16 @@ Until now, still a small piece of post-processing including NMS is required. We 
 - **Run python script to generate ONNX model and run the demo**
 
     ```sh
-    python demo_darknet2onnx.py <cfgFile> <weightFile> <imageFile> <batchSize>
+    python demo_darknet2onnx.py <cfgFile> <namesFile> <weightFile> <imageFile> <batchSize>
     ```
 
-  This script will generate 2 ONNX models.
+## 3.1 Dynamic or static batch size
 
-  - One is for running the demo (batch_size=1)
-  - The other one is what you want to generate (batch_size=batchSize)
+- **Positive batch size will generate ONNX model of static batch size, otherwise, batch size will be dynamic**
+    - Dynamic batch size will generate only one ONNX model
+    - Static batch size will generate 2 ONNX models, one is for running the demo (batch_size=1)
 
-# 4. Pytorch2ONNX (Evolving)
+# 4. Pytorch2ONNX
 
 - **You can convert your trained pytorch model into ONNX using this script**
 
@@ -199,34 +198,54 @@ Until now, still a small piece of post-processing including NMS is required. We 
     python demo_pytorch2onnx.py yolov4.pth dog.jpg 8 80 416 416
     ```
 
-  This script will generate 2 ONNX models.
+## 4.1 Dynamic or static batch size
 
-  - One is for running the demo (batch_size=1)
-  - The other one is what you want to generate (batch_size=batch_size)
+- **Positive batch size will generate ONNX model of static batch size, otherwise, batch size will be dynamic**
+    - Dynamic batch size will generate only one ONNX model
+    - Static batch size will generate 2 ONNX models, one is for running the demo (batch_size=1)
 
 
-# 5. ONNX2TensorRT (Evolving)
+# 5. ONNX2TensorRT
 
 - **TensorRT version Recommended: 7.0, 7.1**
 
-- **Run the following command to convert VOLOv4 ONNX model into TensorRT engine**
+## 5.1 Convert from ONNX of static Batch size
+
+- **Run the following command to convert YOLOv4 ONNX model into TensorRT engine**
 
     ```sh
     trtexec --onnx=<onnx_file> --explicitBatch --saveEngine=<tensorRT_engine_file> --workspace=<size_in_megabytes> --fp16
     ```
     - Note: If you want to use int8 mode in conversion, extra int8 calibration is needed.
 
-- **Run the demo**
+## 5.2 Convert from ONNX of dynamic Batch size
+
+- **Run the following command to convert YOLOv4 ONNX model into TensorRT engine**
 
     ```sh
-    python demo_trt.py <tensorRT_engine_file> <input_image> <input_H> <input_W>
+    trtexec --onnx=<onnx_file> \
+    --minShapes=input:<shape_of_min_batch> --optShapes=input:<shape_of_opt_batch> --maxShapes=input:<shape_of_max_batch> \
+    --workspace=<size_in_megabytes> --saveEngine=<engine_file> --fp16
+    ```
+- For example:
+
+    ```sh
+    trtexec --onnx=yolov4_-1_3_320_512_dynamic.onnx \
+    --minShapes=input:1x3x320x512 --optShapes=input:4x3x320x512 --maxShapes=input:8x3x320x512 \
+    --workspace=2048 --saveEngine=yolov4_-1_3_320_512_dynamic.engine --fp16
     ```
 
-    - This demo here only works when batchSize=1, but you can update this demo a little for batched inputs.
+## 5.3 Run the demo
+
+```sh
+python demo_trt.py <tensorRT_engine_file> <input_image> <input_H> <input_W>
+```
+
+- This demo here only works when batchSize is dynamic (1 should be within dynamic range) or batchSize=1, but you can update this demo a little for other dynamic or static batch sizes.
     
-    - Note1: input_H and input_W should agree with the input size in the original ONNX file.
+- Note1: input_H and input_W should agree with the input size in the original ONNX file.
     
-    - Note2: extra NMS operations are needed for the tensorRT output. This demo uses python NMS code from `tool/utils.py`.
+- Note2: extra NMS operations are needed for the tensorRT output. This demo uses python NMS code from `tool/utils.py`.
 
 
 # 6. ONNX2Tensorflow
