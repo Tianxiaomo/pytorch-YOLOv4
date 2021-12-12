@@ -272,7 +272,7 @@ class Darknet(nn.Module):
                 elif activation == 'mish':
                     model.add_module('mish{0}'.format(conv_id), Mish())
                 elif activation == 'linear':
-                    pass
+                    model.add_module('linear{0}'.format(conv_id), nn.Identity())
                 elif activation == 'logistic':
                     model.add_module('sigmoid{0}'.format(conv_id), nn.Sigmoid())
                 else:
