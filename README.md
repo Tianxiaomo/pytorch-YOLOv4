@@ -274,7 +274,7 @@ python demo_trt.py <tensorRT_engine_file> <input_image> <input_H> <input_W>
    
    For multi-batch, 
   ```
-  trtexec --onnx=<onnx_file> --explicitBatch --shapes=input:Xx3xHxW --optShapes=input:Xx3xHxW --maxShapes=input:Xx3xHxW --minShape=input:1x3xHxW --saveEngine=<tensorRT_engine_file> --fp16
+  trtexec --onnx=<onnx_file> --explicitBatch --shapes=input:Xx3xHxW --optShapes=input:Xx3xHxW --maxShapes=input:Xx3xHxW --minShapes=input:1x3xHxW --saveEngine=<tensorRT_engine_file> --fp16
   ```
   
   Note :The maxShapes could not be larger than model original shape.
