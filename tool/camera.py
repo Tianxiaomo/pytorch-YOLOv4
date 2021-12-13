@@ -65,7 +65,7 @@ if __name__ == '__main__':
             sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
             boxes = do_detect(model, sized, 0.5, 0.4, CUDA)
 
-            orig_im = plot_boxes_cv2(frame, boxes, class_names=class_names)
+            orig_im = plot_boxes_cv2(frame, boxes[0], class_names=class_names)
 
             cv2.imshow("frame", orig_im)
             key = cv2.waitKey(1)
