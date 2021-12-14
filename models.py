@@ -469,7 +469,7 @@ if __name__ == "__main__":
         namesfile = sys.argv[6]
     else:
         print('Usage: ')
-        print('  python models.py num_classes weightfile imgfile namefile')
+        print('  python models.py num_classes weightfile imgfile height width namefile')
 
     model = Yolov4(yolov4conv137weight=None, n_classes=n_classes, inference=True)
 
@@ -487,6 +487,7 @@ if __name__ == "__main__":
     # Optional inference sizes:
     #   Hight in {320, 416, 512, 608, ... 320 + 96 * n}
     #   Width in {320, 416, 512, 608, ... 320 + 96 * m}
+    print(width, height)
     sized = cv2.resize(img, (width, height))
     sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
