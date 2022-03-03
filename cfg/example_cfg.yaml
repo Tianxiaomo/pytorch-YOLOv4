@@ -1,0 +1,58 @@
+# -*- coding: utf-8 -*-
+'''
+@Time          : 2022/03/03
+@Author        : Kevin Kastberg
+@File          : example_cfg.yaml
+@Noice         :
+@Modificattion :
+    @Author    :
+    @Time      :
+    @Detail    :
+
+'''
+
+use_darknet_cfg: true
+cfgfile: "cfg/yolov4.cfg"
+
+batch: 64
+subdivisions: 16
+width: &width 608
+height: &height 608
+channels: 3
+momentum: 0.949
+decay: 0.0005
+angle: 0
+saturation: 1.5
+exposure: 1.5
+hue: .1
+
+learning_rate: 0.00261
+burn_in: 1000
+max_batches: 500500
+steps: &steps [400000, 450000]
+policy: *steps
+scales: .1, .1
+
+cutmix: 0
+mosaic: 1
+mixup: 3
+
+letter_box: 0
+jitter: 0.2
+classes: 80
+track: 0
+w: *width
+h: *height
+flip: 1
+blur: 0
+gaussian: 0
+boxes: 60
+TRAIN_EPOCHS: 300
+train_label: 'train.txt'
+val_label: 'val.txt'
+TRAIN_OPTIMIZER: 'adam'
+
+checkpoints: 'checkpoints'
+TRAIN_TENSORBOARD_DIR: 'log'
+iou_type: 'iou'
+keep_checkpoint_max: 10
