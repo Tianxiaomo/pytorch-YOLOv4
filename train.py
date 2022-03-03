@@ -535,21 +535,37 @@ def get_args(**kwargs):
         description='This script trains the YoloV4 model on images with object masks. '
         'Command line arguments that are not specified retrives default values from the config file.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-b', '--batch-size',     type=int,   dest='batchsize',     help='Batch size', metavar='B')
-    parser.add_argument('-l', '--learning-rate',  type=float, dest='learning_rate', help='Learning rate', metavar='LR')
-    parser.add_argument('-f', '--load',           type=str,   dest='load',          help='Load model from a .pth file')
-    parser.add_argument('-g', '--gpu',            type=str,   dest='gpu',                   help='GPU ID (If not specified CPU will be used)',  metavar='G', default='-1')
-    parser.add_argument('-dir', '--data-dir',     type=str,   dest='dataset_dir',   help='Path to dataset (base_dir for paths in train.txt/val.txt)')
-    parser.add_argument('-pretrained',            type=str,   dest='pretrained',    help='Load pretrained weights (yolov4.conv.137)')
-    parser.add_argument('-classes',               type=int,   dest='classes',       help='Count of dataset classes')
-    parser.add_argument('-train_label_path',      type=str,   dest='train_label',     help='Path to train.txt')
-    parser.add_argument('-val_label_path',        type=str,   dest='val_label',       help='Path to val.txt')
-    parser.add_argument('-optimizer',             type=str,   dest='TRAIN_OPTIMIZER', help='Training optimizer')
-    parser.add_argument('-iou-type',              type=str,   dest='iou_type',        help='iou type [iou, giou, diou, ciou]')
-    parser.add_argument('-keep-checkpoint-max',   type=int,   dest='keep_checkpoint_max', help='Maximum number of checkpoints to keep (set to 0 to save all)')
-    parser.add_argument('-log_path',              type=str,   dest='TRAIN_TENSORBOARD_DIR', help='Path to training progress log files')
-    parser.add_argument('-checkpoint_path',       type=str,   dest='checkpoints',           help='Path to checkpoint files')
-    parser.add_argument('-config',                type=str,   dest='config_path',           help='Path to custom yaml config file (overrides cfg.py)')
+    parser.add_argument('-b', '--batch-size', type=int, dest='batchsize',
+                        help='Batch size', metavar='B')
+    parser.add_argument('-l', '--learning-rate', type=float, dest='learning_rate',
+                        help='Learning rate', metavar='LR')
+    parser.add_argument('-f', '--load', type=str, dest='load',
+                        help='Load model from a .pth file')
+    parser.add_argument('-g', '--gpu', type=str, dest='gpu',
+                        help='GPU ID (If not specified CPU will be used)',
+                        metavar='G', default='-1')
+    parser.add_argument('-dir', '--data-dir', type=str, dest='dataset_dir',
+                        help='Path to dataset (base_dir for paths in train.txt/val.txt)')
+    parser.add_argument('-pretrained', type=str, dest='pretrained',
+                        help='Load pretrained weights (yolov4.conv.137)')
+    parser.add_argument('-classes', type=int, dest='classes',
+                        help='Count of dataset classes')
+    parser.add_argument('-train_label_path', type=str, dest='train_label',
+                        help='Path to train.txt')
+    parser.add_argument('-val_label_path', type=str, dest='val_label',
+                        help='Path to val.txt')
+    parser.add_argument('-optimizer', type=str, dest='TRAIN_OPTIMIZER',
+                        help='Training optimizer')
+    parser.add_argument('-iou-type', type=str, dest='iou_type',
+                        help='iou type [iou, giou, diou, ciou]')
+    parser.add_argument('-keep-checkpoint-max', type=int, dest='keep_checkpoint_max',
+                        help='Maximum number of checkpoints to keep (set to 0 to save all)')
+    parser.add_argument('-log_path', type=str, dest='TRAIN_TENSORBOARD_DIR',
+                        help='Path to training progress log files')
+    parser.add_argument('-checkpoint_path', type=str, dest='checkpoints',
+                        help='Path to checkpoint files')
+    parser.add_argument('-config', type=str, dest='config_path',
+                        help='Path to custom yaml config file (overrides cfg.py)')
     args = vars(parser.parse_args())
 
     cfg.update(args)
