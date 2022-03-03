@@ -16,6 +16,7 @@ import os, sys, math
 import argparse
 from collections import deque
 import datetime
+import yaml
 
 import cv2
 from tqdm import tqdm
@@ -566,10 +567,18 @@ def get_args(**kwargs):
                         help='Path to checkpoint files')
     parser.add_argument('-config', type=str, dest='config_path',
                         help='Path to custom yaml config file (overrides cfg.py)')
-    args = vars(parser.parse_args())
+    cli_args_with_nan = vars(parser.parse_args())
+    cli_args = {key:val for key,val in cli_args_with_nan.items() if val is not None}
 
-    cfg.update(args)
-    return edict(cfg)
+    # Load remaining args from config file
+    if cli_args.get("config_path"):
+        with open(cli_args["config_path"], "r") as f:
+            file_args = yaml.load(f, Loader=yaml.FullLoader)
+    else:
+        file_args = cfg
+
+    file_args.update(cli_args)
+    return edict(file_args)
 
 
 def init_logger(log_file=None, log_dir=None, log_level=logging.INFO, mode='w', stdout=True):
