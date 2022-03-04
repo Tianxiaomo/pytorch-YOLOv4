@@ -536,6 +536,8 @@ def get_args(**kwargs):
         description='This script trains the YoloV4 model on images with object masks. '
         'Command line arguments that are not specified retrives default values from the config file.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-dir', '--data-dir', type=str, dest='dataset_dir',
+                        help='Path to dataset (base_dir for paths in train.txt/val.txt)')
     parser.add_argument('-b', '--batch-size', type=int, dest='batchsize',
                         help='Batch size', metavar='B')
     parser.add_argument('-l', '--learning-rate', type=float, dest='learning_rate',
@@ -545,8 +547,6 @@ def get_args(**kwargs):
     parser.add_argument('-g', '--gpu', type=str, dest='gpu',
                         help='GPU ID (If not specified CPU will be used)',
                         metavar='G', default='-1')
-    parser.add_argument('-dir', '--data-dir', type=str, dest='dataset_dir',
-                        help='Path to dataset (base_dir for paths in train.txt/val.txt)')
     parser.add_argument('-pretrained', type=str, dest='pretrained',
                         help='Load pretrained weights (yolov4.conv.137)')
     parser.add_argument('-classes', type=int, dest='classes',
@@ -576,8 +576,13 @@ def get_args(**kwargs):
             file_args = yaml.load(f, Loader=yaml.FullLoader)
     else:
         file_args = cfg
-
     file_args.update(cli_args)
+
+    # Check if required args are set
+    assert {"dataset_dir", "batchsize", "learning_rate", "classes",
+            "train_label", "val_label", "TRAIN_OPTIMIZER", "iou_type",
+            "keep_checkpoint_max"} <= set(file_args.keys())
+
     return edict(file_args)
 
 
