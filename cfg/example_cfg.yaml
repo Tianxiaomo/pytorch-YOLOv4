@@ -1,18 +1,6 @@
-# -*- coding: utf-8 -*-
-'''
-@Time          : 2022/03/03
-@Author        : Kevin Kastberg
-@File          : example_cfg.yaml
-@Noice         :
-@Modificattion :
-    @Author    :
-    @Time      :
-    @Detail    :
-
-'''
 
 use_darknet_cfg: true
-cfgfile: "cfg/yolov4.cfg"
+cfgfile: 'cfg/yolov4.cfg'
 
 batch: 64
 subdivisions: 16
