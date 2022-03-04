@@ -538,7 +538,7 @@ def get_args(**kwargs):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-dir', '--data-dir', type=str, dest='dataset_dir',
                         help='Path to dataset (base_dir for paths in train.txt/val.txt)')
-    parser.add_argument('-b', '--batch-size', type=int, dest='batchsize',
+    parser.add_argument('-b', '--batch-size', type=int, dest='batch',
                         help='Batch size', metavar='B')
     parser.add_argument('-l', '--learning-rate', type=float, dest='learning_rate',
                         help='Learning rate', metavar='LR')
@@ -579,7 +579,7 @@ def get_args(**kwargs):
     file_args.update(cli_args)
 
     # Check if required args are set
-    assert {"dataset_dir", "batchsize", "learning_rate", "classes",
+    assert {"dataset_dir", "batch", "learning_rate", "classes",
             "train_label", "val_label", "TRAIN_OPTIMIZER", "iou_type",
             "keep_checkpoint_max"} <= set(file_args.keys()),\
             "Required config args are missing"
