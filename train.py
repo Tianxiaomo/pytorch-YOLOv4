@@ -581,8 +581,8 @@ def get_args(**kwargs):
     # Check if required args are set
     assert {"dataset_dir", "batchsize", "learning_rate", "classes",
             "train_label", "val_label", "TRAIN_OPTIMIZER", "iou_type",
-            "keep_checkpoint_max"} <= set(file_args.keys())
-
+            "keep_checkpoint_max"} <= set(file_args.keys()),\
+            "Required config args are missing"
     return edict(file_args)
 
 
