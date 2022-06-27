@@ -9,7 +9,6 @@ import onnxruntime
 from tool.utils import *
 from tool.darknet2onnx import *
 
-
 def main(cfg_file, namesfile, weight_file, image_path, batch_size):
     providers = [
         ('CUDAExecutionProvider', {
@@ -33,8 +32,8 @@ def main(cfg_file, namesfile, weight_file, image_path, batch_size):
     # session = onnx.load(onnx_path)
     print("The model expects input shape: ", session.get_inputs()[0].shape)
 
-    image_src = cv2.imread(image_path)
-    detect(session, image_src, namesfile)
+    # image_src = cv2.imread(image_path)
+    # detect(session, image_src, namesfile)
 
 
 
