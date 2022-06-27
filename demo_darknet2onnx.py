@@ -9,9 +9,17 @@ import onnxruntime
 from tool.utils import *
 from tool.darknet2onnx import *
 
-
 def main(cfg_file, namesfile, weight_file, image_path, batch_size):
-
+    providers = [
+        ('CUDAExecutionProvider', {
+            'device_id': 0,
+            'arena_extend_strategy': 'kNextPowerOfTwo',
+            'gpu_mem_limit': 1 * 1024 * 1024 * 1024,
+            'cudnn_conv_algo_search': 'EXHAUSTIVE',
+            'do_copy_in_default_stream': True,
+        }),
+        'CPUExecutionProvider',
+    ]
     if batch_size <= 0:
         onnx_path_demo = transform_to_onnx(cfg_file, weight_file, batch_size)
     else:
@@ -20,12 +28,12 @@ def main(cfg_file, namesfile, weight_file, image_path, batch_size):
         # Transform to onnx as demo
         onnx_path_demo = transform_to_onnx(cfg_file, weight_file, 1)
 
-    session = onnxruntime.InferenceSession(onnx_path_demo)
+    session = onnxruntime.InferenceSession(onnx_path_demo,providers=providers)
     # session = onnx.load(onnx_path)
     print("The model expects input shape: ", session.get_inputs()[0].shape)
 
-    image_src = cv2.imread(image_path)
-    detect(session, image_src, namesfile)
+    # image_src = cv2.imread(image_path)
+    # detect(session, image_src, namesfile)
 
 
 
