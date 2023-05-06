@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from tool.region_layer import RegionLayer
 from tool.yolo_layer import YoloLayer
 from tool.config import *
 from tool.torch_utils import *
@@ -388,16 +387,16 @@ class Darknet(nn.Module):
                 out_strides.append(prev_stride)
                 models.append(model)
             elif block['type'] == 'region':
-                region = RegionLayer()
+                region = YoloLayer()
                 anchors = block['anchors'].split(',')
                 region.anchors = [float(i) for i in anchors]
                 region.num_classes = int(block['classes'])
                 region.num_anchors = int(block['num'])
                 region.anchor_step = len(region.anchors) // region.num_anchors
-                region.object_scale = float(block['object_scale'])
-                region.noobject_scale = float(block['noobject_scale'])
-                region.class_scale = float(block['class_scale'])
-                region.coord_scale = float(block['coord_scale'])
+                region.scale_x_y = 1.0 # thre is not such value in region config
+                region.anchor_mask = [int(i) for i in range(len(anchors) // 2)] # region has no anchor masks
+                region.stride = 1 # not implemented for region
+                region.multiply_confs = False # do not multiply detection and class confidence
                 out_filters.append(prev_filters)
                 out_strides.append(prev_stride)
                 models.append(region)

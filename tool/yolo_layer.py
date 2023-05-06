@@ -146,7 +146,7 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, scale_x
 
 
 def yolo_forward_dynamic(output, conf_thresh, num_classes, anchors, num_anchors, scale_x_y, only_objectness=1,
-                              validation=False):
+                              validation=False, multiply_confs=True):
     # Output would be invalid if it does not satisfy this assert
     # assert (output.size(1) == (5 + num_classes) * num_anchors)
 
@@ -280,7 +280,10 @@ def yolo_forward_dynamic(output, conf_thresh, num_classes, anchors, num_anchors,
     # det_confs: [batch, num_anchors * H * W]
 
     det_confs = det_confs.view(output.size(0), num_anchors * output.size(2) * output.size(3), 1)
-    confs = cls_confs * det_confs
+    if multiply_confs:
+        confs = cls_confs * det_confs
+    else:
+        confs = det_confs
 
     # boxes: [batch, num_anchors * H * W, 1, 4]
     # confs: [batch, num_anchors * H * W, num_classes]
@@ -292,7 +295,7 @@ class YoloLayer(nn.Module):
     model_out: while inference,is post-processing inside or outside the model
         true:outside
     '''
-    def __init__(self, anchor_mask=[], num_classes=0, anchors=[], num_anchors=1, stride=32, model_out=False):
+    def __init__(self, anchor_mask=[], num_classes=0, anchors=[], num_anchors=1, stride=32, model_out=False, multiply_confs=True):
         super(YoloLayer, self).__init__()
         self.anchor_mask = anchor_mask
         self.num_classes = num_classes
@@ -307,6 +310,7 @@ class YoloLayer(nn.Module):
         self.stride = stride
         self.seen = 0
         self.scale_x_y = 1
+        self.multiply_confs = multiply_confs
 
         self.model_out = model_out
 
@@ -318,5 +322,4 @@ class YoloLayer(nn.Module):
             masked_anchors += self.anchors[m * self.anchor_step:(m + 1) * self.anchor_step]
         masked_anchors = [anchor / self.stride for anchor in masked_anchors]
 
-        return yolo_forward_dynamic(output, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask),scale_x_y=self.scale_x_y)
-
+        return yolo_forward_dynamic(output, self.thresh, self.num_classes, masked_anchors, len(self.anchor_mask),scale_x_y=self.scale_x_y, multiply_confs=self.multiply_confs)
