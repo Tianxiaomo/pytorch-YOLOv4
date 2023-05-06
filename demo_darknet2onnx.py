@@ -46,7 +46,7 @@ def detect(session, image_src, namesfile):
 
     outputs = session.run(None, {input_name: img_in})
 
-    boxes = post_processing(img_in, 0.25, 0.45, outputs)
+    boxes = post_processing(img_in, 0.4, 0.6, outputs)
 
     class_names = load_class_names(namesfile)
     plot_boxes_cv2(image_src, boxes[0], savename='predictions_onnx.jpg', class_names=class_names)
