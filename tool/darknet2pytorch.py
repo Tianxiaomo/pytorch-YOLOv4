@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from tool.region_loss import RegionLoss
 from tool.yolo_layer import YoloLayer
 from tool.config import *
 from tool.torch_utils import *
@@ -208,12 +207,8 @@ class Darknet(nn.Module):
                 x = x1 * x2
                 outputs[ind] = x
             elif block['type'] == 'region':
-                continue
-                if self.loss:
-                    self.loss = self.loss + self.models[ind](x)
-                else:
-                    self.loss = self.models[ind](x)
-                outputs[ind] = None
+                boxes = self.models[ind](x)
+                out_boxes.append(boxes)
             elif block['type'] == 'yolo':
                 # if self.training:
                 #     pass
@@ -392,19 +387,19 @@ class Darknet(nn.Module):
                 out_strides.append(prev_stride)
                 models.append(model)
             elif block['type'] == 'region':
-                loss = RegionLoss()
+                region = YoloLayer()
                 anchors = block['anchors'].split(',')
-                loss.anchors = [float(i) for i in anchors]
-                loss.num_classes = int(block['classes'])
-                loss.num_anchors = int(block['num'])
-                loss.anchor_step = len(loss.anchors) // loss.num_anchors
-                loss.object_scale = float(block['object_scale'])
-                loss.noobject_scale = float(block['noobject_scale'])
-                loss.class_scale = float(block['class_scale'])
-                loss.coord_scale = float(block['coord_scale'])
+                region.anchors = [float(i) for i in anchors]
+                region.num_classes = int(block['classes'])
+                region.num_anchors = int(block['num'])
+                region.anchor_step = len(region.anchors) // region.num_anchors
+                region.scale_x_y = 1.0 # thre is not such value in region config
+                region.anchor_mask = [int(i) for i in range(len(anchors) // 2)] # region has no anchor masks
+                region.stride = 1 # not implemented for region
+                region.multiply_confs = False # do not multiply detection and class confidence
                 out_filters.append(prev_filters)
                 out_strides.append(prev_stride)
-                models.append(loss)
+                models.append(region)
             elif block['type'] == 'yolo':
                 yolo_layer = YoloLayer()
                 anchors = block['anchors'].split(',')
