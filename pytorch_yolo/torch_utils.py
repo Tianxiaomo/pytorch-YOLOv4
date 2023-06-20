@@ -10,7 +10,7 @@ import itertools
 import struct  # get_image_size
 import imghdr  # get_image_size
 
-from tool import utils 
+from pytorch_yolo import utils
 
 
 def bbox_ious(boxes1, boxes2, x1y1x2y2=True):
@@ -60,7 +60,7 @@ def get_region_boxes(boxes_and_confs):
     # confs: [batch, num1 + num2 + num3, num_classes]
     boxes = torch.cat(boxes_list, dim=1)
     confs = torch.cat(confs_list, dim=1)
-        
+
     return [boxes, confs]
 
 

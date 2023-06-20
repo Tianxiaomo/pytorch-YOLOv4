@@ -1,10 +1,10 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from tool.region_loss import RegionLoss
-from tool.yolo_layer import YoloLayer
-from tool.config import *
-from tool.torch_utils import *
+from pytorch_yolo.region_loss import RegionLoss
+from pytorch_yolo.yolo_layer import YoloLayer
+from pytorch_yolo.config import *
+from pytorch_yolo.torch_utils import *
 
 
 class Mish(torch.nn.Module):
@@ -56,7 +56,7 @@ class Upsample_expand(nn.Module):
 
     def forward(self, x):
         assert (x.data.dim() == 4)
-        
+
         x = x.view(x.size(0), x.size(1), x.size(2), 1, x.size(3), 1).\
             expand(x.size(0), x.size(1), x.size(2), self.stride, x.size(3), self.stride).contiguous().\
             view(x.size(0), x.size(1), x.size(2) * self.stride, x.size(3) * self.stride)

@@ -12,10 +12,11 @@
 '''
 from __future__ import division
 import cv2
-from tool.darknet2pytorch import Darknet
 import argparse
-from tool.utils import *
-from tool.torch_utils import *
+
+from pytorch_yolo.darknet2pytorch import Darknet
+from pytorch_yolo.utils import *
+from pytorch_yolo.torch_utils import *
 
 
 def arg_parse():

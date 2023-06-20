@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from tool.torch_utils import *
+from pytorch_yolo.torch_utils import *
 
 def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, scale_x_y, only_objectness=1,
                               validation=False):
@@ -25,7 +25,7 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, scale_x
     for i in range(num_anchors):
         begin = i * (5 + num_classes)
         end = (i + 1) * (5 + num_classes)
-        
+
         bxy_list.append(output[:, begin : begin + 2])
         bwh_list.append(output[:, begin + 2 : begin + 4])
         det_confs_list.append(output[:, begin + 4 : begin + 5])
@@ -45,7 +45,7 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, scale_x
     cls_confs = torch.cat(cls_confs_list, dim=1)
     # Shape: [batch, num_anchors, num_classes, H * W]
     cls_confs = cls_confs.view(batch, num_anchors, num_classes, H * W)
-    # Shape: [batch, num_anchors, num_classes, H * W] --> [batch, num_anchors * H * W, num_classes] 
+    # Shape: [batch, num_anchors, num_classes, H * W] --> [batch, num_anchors * H * W, num_classes]
     cls_confs = cls_confs.permute(0, 1, 3, 2).reshape(batch, num_anchors * H * W, num_classes)
 
     # Apply sigmoid(), exp() and softmax() to slices
@@ -98,7 +98,7 @@ def yolo_forward(output, conf_thresh, num_classes, anchors, num_anchors, scale_x
     ########################################
     #   Figure out bboxes from slices     #
     ########################################
-    
+
     # Shape: [batch, num_anchors, H, W]
     bx = torch.cat(bx_list, dim=1)
     # Shape: [batch, num_anchors, H, W]
@@ -168,7 +168,7 @@ def yolo_forward_dynamic(output, conf_thresh, num_classes, anchors, num_anchors,
     for i in range(num_anchors):
         begin = i * (5 + num_classes)
         end = (i + 1) * (5 + num_classes)
-        
+
         bxy_list.append(output[:, begin : begin + 2])
         bwh_list.append(output[:, begin + 2 : begin + 4])
         det_confs_list.append(output[:, begin + 4 : begin + 5])
@@ -188,7 +188,7 @@ def yolo_forward_dynamic(output, conf_thresh, num_classes, anchors, num_anchors,
     cls_confs = torch.cat(cls_confs_list, dim=1)
     # Shape: [batch, num_anchors, num_classes, H * W]
     cls_confs = cls_confs.view(output.size(0), num_anchors, num_classes, output.size(2) * output.size(3))
-    # Shape: [batch, num_anchors, num_classes, H * W] --> [batch, num_anchors * H * W, num_classes] 
+    # Shape: [batch, num_anchors, num_classes, H * W] --> [batch, num_anchors * H * W, num_classes]
     cls_confs = cls_confs.permute(0, 1, 3, 2).reshape(output.size(0), num_anchors * output.size(2) * output.size(3), num_classes)
 
     # Apply sigmoid(), exp() and softmax() to slices
@@ -241,7 +241,7 @@ def yolo_forward_dynamic(output, conf_thresh, num_classes, anchors, num_anchors,
     ########################################
     #   Figure out bboxes from slices     #
     ########################################
-    
+
     # Shape: [batch, num_anchors, H, W]
     bx = torch.cat(bx_list, dim=1)
     # Shape: [batch, num_anchors, H, W]

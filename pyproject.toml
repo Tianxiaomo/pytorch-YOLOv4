@@ -1,0 +1,66 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [
+  "hatchling >= 1.11.0",
+  "pip >= 22.0.0"
+]
+
+
+[project.scripts]
+pytorchyolo = "pytorch_yolo.examples.demo:main"
+
+
+[project]
+name            = "pytorch_yolo"
+version         = "0.0.1"
+description     = "PyTorch, ONNX and TensorRT implementation of YOLOv4"
+readme          = "README.md"
+requires-python = ">=3.8"
+license-files = { paths = ["LICENSE"] }
+
+
+authors = [
+  { name = "Tianxiaomo", email = "Tianxiaomo@github.com" },
+  { name = "Two Six Technologies", email = "armory@twosixtech.com" },
+]
+
+keywords = [ ]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+  "numpy",
+  "torch",
+  "tensorboardX",
+  "scikit_image",
+  "matplotlib",
+  "tqdm",
+  "easydict",
+  "Pillow",
+  "opencv_python",
+  "pycocotools",
+]
+
+[project.urls]
+GitHub = "https://github.com/twosixlabs/pytorch_YOLOv4"
+
+
+[tool.hatch.build]
+ignore-vcs   = false
+reproducible = true
+directory    = "dist"
+include = [
+  "pytorch_yolo/",
+  "LICENSE",
+  "pyproject.toml",
+  "README.md"
+]
+
+
+[tool.hatch.metadata]
+allow-direct-references = true

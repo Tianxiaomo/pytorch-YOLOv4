@@ -14,9 +14,9 @@
 # import time
 # from PIL import Image, ImageDraw
 # from models.tiny_yolo import TinyYoloNet
-from tool.utils import *
-from tool.torch_utils import *
-from tool.darknet2pytorch import Darknet
+from pytorch_yolo.utils import *
+from pytorch_yolo.torch_utils import *
+from pytorch_yolo.darknet2pytorch import Darknet
 import torch
 import argparse
 
@@ -148,14 +148,14 @@ def get_args():
     parser.add_argument('-imgfile', type=str,
                         default='./data/mscoco2017/train2017/190109_180343_00154162.jpg',
                         help='path of your image file.', dest='imgfile')
-    parser.add_argument('-torch', type=bool, default=false,
+    parser.add_argument('-torch', type=bool, default=False,
                         help='use torch weights')
     args = parser.parse_args()
 
     return args
 
 
-if __name__ == '__main__':
+def main():
     args = get_args()
     if args.imgfile:
         detect_cv2(args.cfgfile, args.weightfile, args.imgfile)
@@ -164,3 +164,7 @@ if __name__ == '__main__':
         # detect_skimage(args.cfgfile, args.weightfile, args.imgfile)
     else:
         detect_cv2_camera(args.cfgfile, args.weightfile)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,3 +1,5 @@
+venv
+
 ttest
 *.weights
 *.pth
