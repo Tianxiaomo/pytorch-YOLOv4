@@ -1,6 +1,8 @@
 venv
+data/outcome
 
-ttest
+test
+
 *.weights
 *.pth
 *.onnx
@@ -19,4 +21,3 @@ log
 
 *.jpg
 *.json
-data/outcome
