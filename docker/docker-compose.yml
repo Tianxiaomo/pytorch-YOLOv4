@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+
+  yolo-v4-train:
+
+    build:
+      context: ..
+      dockerfile: "docker/Dockerfile"
+      args:
+        - CUDA_VER=${CUDA_VER}
+        - UBUNTU_VER=${UBUNTU_VER} 
+
+    image: pytorch-yolo-v4-train-img
+    container_name: pytorch-yolo-v4-train
+    command: tail -F anything-non-existing
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ "gpu" ]
+              
+    volumes:
+      - ${REPO_DIR}:/repo
+      - ${DATA_DIR}:/data
+
+    network_mode: "host"
+
+# sudo docker compose up --build
+# sudo docker compose run -i --entrypoint bash --build yolo-v4-train
+

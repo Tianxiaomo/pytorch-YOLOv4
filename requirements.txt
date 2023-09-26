@@ -1,6 +1,8 @@
 numpy==1.18.2
 torch==1.4.0
+torchvision==0.5.0
 tensorboardX==2.0
+protobuf==3.20
 scikit_image==0.16.2
 matplotlib==2.2.3
 tqdm==4.43.0
